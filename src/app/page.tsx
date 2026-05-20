@@ -288,14 +288,11 @@ function Navbar({
       </div>
 
       {/* Main Navbar */}
-      <motion.nav
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.5 }}
+      <nav
         className={`sticky top-0 z-50 transition-all duration-500 ${
           scrolled
-            ? "bg-luxury-black/95 backdrop-blur-md shadow-lg shadow-black/20 border-b border-luxury-border"
-            : "bg-transparent"
+            ? "bg-luxury-black shadow-lg shadow-black/30 border-b border-luxury-border"
+            : "bg-luxury-black/80 backdrop-blur-md border-b border-white/5"
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -428,7 +425,7 @@ function Navbar({
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.nav>
+      </nav>
     </>
   );
 }
