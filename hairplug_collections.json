@@ -1,0 +1,23 @@
+{
+  "code": 200,
+  "data": {
+    "description": "",
+    "external": {},
+    "html": "<html><head>\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>Page Not Found - The Hair Plug</title>\n  <link rel=\"stylesheet\" media=\"screen\" href=\"/assets/errors-d5ff116a6970d82c9ea5c91a09edb46f1eddddee6bf5a19f45598026433fd94c.css\">\n</head>\n<body>\n  <div class=\"container\">\n    <h1>Sorry, that page cannot be found.</h1>\n      <a href=\"/\" class=\"back-link\">Continue shopping</a>\n  </div>\n<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML=\"window.__CF$cv$params={r:'9fec9842ebea761b',t:'MTc3OTI5MzI1MQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);\";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script><iframe height=\"1\" width=\"1\" style=\"position: absolute; top: 0px; left: 0px; border-width: medium; border-style: none; border-color: currentcolor; border-image: initial; visibility: hidden;\"></iframe><script defer=\"\" src=\"https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447\" integrity=\"sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==\" data-cf-beacon=\"{&quot;version&quot;:&quot;2024.11.0&quot;,&quot;token&quot;:&quot;44d6648085c9451aa740849b0372227e&quot;,&quot;server_timing&quot;:{&quot;name&quot;:{&quot;cfCacheStatus&quot;:true,&quot;cfEdge&quot;:true,&quot;cfExtPri&quot;:true,&quot;cfL4&quot;:true,&quot;cfOrigin&quot;:true,&quot;cfSpeedBrain&quot;:true},&quot;location_startswith&quot;:null}}\" crossorigin=\"anonymous\"></script>\n\n</body></html>",
+    "metadata": {
+      "viewport": "width=device-width, initial-scale=1.0"
+    },
+    "title": "Page Not Found - The Hair Plug",
+    "url": "https://www.shopthehairplug.com/collections/all",
+    "usage": {
+      "tokens": 666
+    },
+    "warning": "Target URL returned error 404: Not Found"
+  },
+  "meta": {
+    "usage": {
+      "tokens": 666
+    }
+  },
+  "status": 20000
+}
