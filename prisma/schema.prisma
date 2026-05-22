@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -13,20 +7,57 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
+model Product {
+  id                String   @id @default(cuid())
+  name              String
+  description       String   @default("")
+  price             Float
+  originalPrice     Float?
+  image             String   @default("")
+  images            String   @default("[]")
+  category          String   @default("Bundles")
+  badge             String   @default("")
+  rating            Float    @default(0)
+  reviewCount       Int      @default(0)
+  stock             Int      @default(50)
+  lowStockThreshold Int      @default(5)
+  lengths           String   @default("[]")
+  colors            String   @default("[]")
+  featured          Boolean  @default(false)
+  active            Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  reviews           Review[]
+}
+
+model Review {
   id        String   @id @default(cuid())
-  email     String   @unique
-  name      String?
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  author    String
+  email     String   @default("")
+  rating    Int
+  title     String   @default("")
+  text      String
+  verified  Boolean  @default(false)
+  approved  Boolean  @default(true)
   createdAt DateTime @default(now())
+}
+
+model Settings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
   updatedAt DateTime @updatedAt
 }
 
-model Post {
+model ContactMessage {
   id        String   @id @default(cuid())
-  title     String
-  content   String?
-  published Boolean  @default(false)
-  authorId  String
+  name      String
+  email     String
+  phone     String   @default("")
+  subject   String   @default("")
+  message   String
+  read      Boolean  @default(false)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
 }
