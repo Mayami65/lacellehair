@@ -61,6 +61,19 @@ interface Product {
   lowStockThreshold: number;
   featured: boolean;
   active: boolean;
+  variants?: ProductVariant[];
+}
+
+interface ProductVariant {
+  id: string;
+  productId: string;
+  length: string;
+  color: string;
+  price: number;
+  originalPrice: number | null;
+  stock: number;
+  sku: string;
+  active: boolean;
 }
 
 interface Review {
@@ -192,6 +205,146 @@ function DashboardTab({ products, reviews, messages }: { products: Product[]; re
   );
 }
 
+/* ─────────── Variants Manager ─────────── */
+function VariantsManager({ productId }: { productId: string }) {
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [editVariant, setEditVariant] = useState<ProductVariant | null>(null);
+  const [vForm, setVForm] = useState<Record<string, string | number>>({});
+
+  const fetchVariants = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/variants?productId=${productId}`);
+      const data = await res.json();
+      setVariants(Array.isArray(data) ? data : []);
+    } catch {}
+    setLoading(false);
+  }, [productId]);
+
+  useEffect(() => { fetchVariants(); }, [fetchVariants]);
+
+  const openNew = () => {
+    setVForm({ length: "", color: "", price: 0, originalPrice: "", stock: 50, sku: "" });
+    setEditVariant(null);
+    setShowAdd(true);
+  };
+
+  const openEditV = (v: ProductVariant) => {
+    setVForm({ ...v });
+    setEditVariant(v);
+    setShowAdd(true);
+  };
+
+  const handleSaveVariant = async () => {
+    if (!vForm.price || Number(vForm.price) <= 0) { toast.error("Price is required"); return; }
+    try {
+      if (editVariant) {
+        await fetch("/api/variants", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: editVariant.id, ...vForm }) });
+        toast.success("Variant updated");
+      } else {
+        await fetch("/api/variants", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ productId, ...vForm }) });
+        toast.success("Variant created");
+      }
+      setShowAdd(false);
+      fetchVariants();
+    } catch { toast.error("Failed to save variant"); }
+  };
+
+  const handleDeleteVariant = async (id: string) => {
+    if (!confirm("Delete this variant?")) return;
+    try {
+      await fetch(`/api/variants?id=${id}`, { method: "DELETE" });
+      toast.success("Variant deleted");
+      fetchVariants();
+    } catch { toast.error("Failed to delete variant"); }
+  };
+
+  if (loading) return <div className="flex justify-center py-4"><div className="w-6 h-6 border-2 border-gold border-t-transparent rounded-full animate-spin" /></div>;
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <h4 className="text-sm font-semibold text-white">Variant Prices</h4>
+          <Badge variant="outline" className="text-[10px] border-pink/30 text-pink">{variants.length} variants</Badge>
+        </div>
+        <Button size="sm" onClick={openNew} className="gold-gradient text-luxury-black font-semibold rounded-full px-3 text-xs h-7"><Plus className="w-3 h-3 mr-1" />Add Variant</Button>
+      </div>
+
+      {variants.length === 0 && !showAdd && (
+        <div className="text-center py-6 border border-dashed border-luxury-border rounded-xl">
+          <p className="text-muted-foreground text-xs">No variants yet. Add variant prices for different lengths/colors.</p>
+        </div>
+      )}
+
+      {variants.length > 0 && (
+        <div className="space-y-2 max-h-64 overflow-y-auto">
+          {variants.map((v) => (
+            <div key={v.id} className="flex items-center gap-3 bg-luxury-gray/50 rounded-lg p-3 border border-luxury-border">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  {v.length && <Badge variant="outline" className="text-[10px] border-gold/30 text-gold">{v.length}</Badge>}
+                  {v.color && <Badge variant="outline" className="text-[10px] border-pink/30 text-pink">{v.color}</Badge>}
+                  {v.sku && <span className="text-[10px] text-muted-foreground">SKU: {v.sku}</span>}
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-gold font-bold text-sm">${v.price}</span>
+                  {v.originalPrice && <span className="text-xs text-muted-foreground line-through">${v.originalPrice}</span>}
+                  <span className={`text-[10px] ${v.stock <= 5 ? "text-orange-400" : "text-green-400"}`}>Stock: {v.stock}</span>
+                </div>
+              </div>
+              <div className="flex gap-1 flex-shrink-0">
+                <Button size="sm" variant="outline" className="border-luxury-border text-white/70 hover:text-gold hover:border-gold h-7 w-7 p-0" onClick={() => openEditV(v)}><Pencil className="w-3 h-3" /></Button>
+                <Button size="sm" variant="outline" className="border-luxury-border text-white/70 hover:text-red-400 h-7 w-7 p-0" onClick={() => handleDeleteVariant(v.id)}><Trash2 className="w-3 h-3" /></Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Add/Edit Variant Inline Form */}
+      {showAdd && (
+        <div className="bg-luxury-gray/30 rounded-xl p-4 border border-gold/20 space-y-3">
+          <h5 className="text-xs font-semibold text-gold">{editVariant ? "Edit Variant" : "New Variant"}</h5>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs text-white/60 mb-1 block">Length</label>
+              <Input value={vForm.length || ""} onChange={(e) => setVForm({ ...vForm, length: e.target.value })} className="bg-luxury-gray border-luxury-border text-white h-9 text-sm" placeholder='e.g. 18"' />
+            </div>
+            <div>
+              <label className="text-xs text-white/60 mb-1 block">Color</label>
+              <Input value={vForm.color || ""} onChange={(e) => setVForm({ ...vForm, color: e.target.value })} className="bg-luxury-gray border-luxury-border text-white h-9 text-sm" placeholder="e.g. #1B" />
+            </div>
+            <div>
+              <label className="text-xs text-white/60 mb-1 block">SKU</label>
+              <Input value={vForm.sku || ""} onChange={(e) => setVForm({ ...vForm, sku: e.target.value })} className="bg-luxury-gray border-luxury-border text-white h-9 text-sm" placeholder="Optional" />
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <label className="text-xs text-white/60 mb-1 block">Price *</label>
+              <Input type="number" value={vForm.price || ""} onChange={(e) => setVForm({ ...vForm, price: Number(e.target.value) })} className="bg-luxury-gray border-luxury-border text-white h-9 text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-white/60 mb-1 block">Original Price</label>
+              <Input type="number" value={vForm.originalPrice || ""} onChange={(e) => setVForm({ ...vForm, originalPrice: e.target.value ? Number(e.target.value) : "" })} className="bg-luxury-gray border-luxury-border text-white h-9 text-sm" />
+            </div>
+            <div>
+              <label className="text-xs text-white/60 mb-1 block">Stock</label>
+              <Input type="number" value={vForm.stock || ""} onChange={(e) => setVForm({ ...vForm, stock: Number(e.target.value) })} className="bg-luxury-gray border-luxury-border text-white h-9 text-sm" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button size="sm" onClick={handleSaveVariant} disabled={!vForm.price} className="gold-gradient text-luxury-black font-semibold rounded-full px-4 text-xs h-8">{editVariant ? "Update" : "Add"} Variant</Button>
+            <Button size="sm" variant="outline" onClick={() => setShowAdd(false)} className="border-luxury-border text-white/70 rounded-full h-8">Cancel</Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ─────────── Products Tab ─────────── */
 function ProductsTab({ products, onRefresh }: { products: Product[]; onRefresh: () => void }) {
   const [editProduct, setEditProduct] = useState<Product | null>(null);
@@ -291,6 +444,7 @@ function ProductsTab({ products, onRefresh }: { products: Product[]; onRefresh: 
               </div>
               <div className="flex items-center gap-2 mt-1">
                 <Badge variant="outline" className="text-[10px] border-luxury-border text-muted-foreground">{p.category}</Badge>
+                {p.variants && p.variants.length > 0 && <Badge variant="outline" className="text-[10px] border-pink/30 text-pink">{p.variants.length} variant{p.variants.length > 1 ? 's' : ''}</Badge>}
                 <span className={`text-xs ${p.stock <= p.lowStockThreshold ? "text-orange-400" : "text-green-400"}`}>Stock: {p.stock}</span>
               </div>
               <div className="flex gap-2 mt-3">
@@ -340,6 +494,12 @@ function ProductsTab({ products, onRefresh }: { products: Product[]; onRefresh: 
               <Button onClick={handleSave} disabled={saving || !form.name || !form.price} className="flex-1 gold-gradient text-luxury-black font-semibold rounded-full py-3">{saving ? "Saving..." : isNew ? "Create Product" : "Save Changes"}</Button>
               <Button variant="outline" onClick={() => { setEditProduct(null); setIsNew(false); }} className="border-luxury-border text-white/70 rounded-full">Cancel</Button>
             </div>
+            {/* Variant Prices - only show for existing products */}
+            {!isNew && editProduct && (
+              <div className="pt-4 border-t border-luxury-border">
+                <VariantsManager productId={editProduct.id} />
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>

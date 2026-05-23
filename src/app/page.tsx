@@ -54,6 +54,17 @@ import {
 import { toast } from "sonner";
 
 /* ─────────── Types ─────────── */
+interface VariantType {
+  id: string;
+  productId: string;
+  length: string;
+  color: string;
+  price: number;
+  originalPrice?: number | null;
+  stock: number;
+  sku: string;
+}
+
 interface ProductType {
   id: string;
   name: string;
@@ -68,6 +79,7 @@ interface ProductType {
   colors: string[];
   stock: number;
   lowStockThreshold: number;
+  variants?: VariantType[];
 }
 
 interface ReviewType {
@@ -85,6 +97,7 @@ interface CartItem {
   id: string;
   product: ProductType;
   quantity: number;
+  variant?: VariantType;
 }
 
 /* ─────────── Static Data ─────────── */
@@ -546,9 +559,31 @@ function ProductCard({ product, onAddToCart, onClick, isWishlisted, onToggleWish
           </div>
           <h3 className="text-sm font-semibold text-white mb-2 group-hover:text-gold transition-colors">{product.name}</h3>
           <div className="flex items-center gap-2">
-            <span className="text-lg font-bold text-gold">${product.price}</span>
-            {product.originalPrice && <span className="text-sm text-muted-foreground line-through">${product.originalPrice}</span>}
+            {product.variants && product.variants.length > 0 ? (() => {
+              const prices = product.variants.map(v => v.price);
+              const minPrice = Math.min(...prices);
+              const maxPrice = Math.max(...prices);
+              return minPrice !== maxPrice ? (
+                <>
+                  <span className="text-lg font-bold text-gold">${minPrice} - ${maxPrice}</span>
+                  {product.originalPrice && <span className="text-sm text-muted-foreground line-through">${product.originalPrice}</span>}
+                </>
+              ) : (
+                <>
+                  <span className="text-lg font-bold text-gold">${minPrice}</span>
+                  {product.variants[0]?.originalPrice && <span className="text-sm text-muted-foreground line-through">${product.variants[0].originalPrice}</span>}
+                </>
+              );
+            })() : (
+              <>
+                <span className="text-lg font-bold text-gold">${product.price}</span>
+                {product.originalPrice && <span className="text-sm text-muted-foreground line-through">${product.originalPrice}</span>}
+              </>
+            )}
           </div>
+          {product.variants && product.variants.length > 0 && (
+            <p className="text-[10px] text-pink mt-1">{product.variants.length} length/color option{product.variants.length > 1 ? 's' : ''}</p>
+          )}
         </div>
       </div>
     </motion.div>
@@ -828,16 +863,17 @@ function WriteReviewDialog({ open, onOpenChange, products, preselectedProductId 
 
 /* ─────────── Product Detail Modal ─────────── */
 
-function ProductDetailModal({ product, open, onOpenChange, onAddToCart, onWriteReview, isWishlisted, onToggleWishlist }: { product: ProductType | null; open: boolean; onOpenChange: (o: boolean) => void; onAddToCart: (p: ProductType) => void; onWriteReview: (productId: string) => void; isWishlisted: boolean; onToggleWishlist: (id: string) => void }) {
+function ProductDetailModal({ product, open, onOpenChange, onAddToCart, onWriteReview, isWishlisted, onToggleWishlist }: { product: ProductType | null; open: boolean; onOpenChange: (o: boolean) => void; onAddToCart: (p: ProductType, v?: VariantType, qty?: number) => void; onWriteReview: (productId: string) => void; isWishlisted: boolean; onToggleWishlist: (id: string) => void }) {
   const [quantity, setQuantity] = useState(1);
-  const [selectedLength, setSelectedLength] = useState("");
-  const [selectedColor, setSelectedColor] = useState("");
+  const [selectedVariant, setSelectedVariant] = useState<VariantType | null>(null);
   const [reviews, setReviews] = useState<ReviewType[]>([]);
   const prevOpenRef = useRef(open);
 
+  const hasVariants = product?.variants && product.variants.length > 0;
+
   useEffect(() => {
     if (open && !prevOpenRef.current && product) {
-      const timer = setTimeout(() => { setQuantity(1); setSelectedLength(""); setSelectedColor(""); }, 0);
+      const timer = setTimeout(() => { setQuantity(1); setSelectedVariant(null); }, 0);
       fetch(`/api/reviews?productId=${product.id}&limit=5`)
         .then((r) => r.json())
         .then((d) => setReviews(d.reviews || []))
@@ -850,8 +886,43 @@ function ProductDetailModal({ product, open, onOpenChange, onAddToCart, onWriteR
 
   if (!product) return null;
 
-  const stockStatus = product.stock <= 0 ? "Out of Stock" : product.stock <= product.lowStockThreshold ? `Low Stock (${product.stock} left)` : "In Stock";
-  const stockColor = product.stock <= 0 ? "text-red-400" : product.stock <= product.lowStockThreshold ? "text-orange-400" : "text-green-400";
+  // Determine current price based on variant selection
+  const currentPrice = selectedVariant ? selectedVariant.price : product.price;
+  const currentStock = selectedVariant ? selectedVariant.stock : product.stock;
+
+  const stockStatus = currentStock <= 0 ? "Out of Stock" : currentStock <= product.lowStockThreshold ? `Low Stock (${currentStock} left)` : "In Stock";
+  const stockColor = currentStock <= 0 ? "text-red-400" : currentStock <= product.lowStockThreshold ? "text-orange-400" : "text-green-400";
+
+  // Get unique lengths and colors from variants
+  const variantLengths = hasVariants ? [...new Set(product!.variants!.map(v => v.length).filter(Boolean))] : product.lengths;
+  const variantColors = hasVariants ? [...new Set(product!.variants!.map(v => v.color).filter(Boolean))] : product.colors;
+
+  // Filter variants by selected length and color
+  const selectedLength = selectedVariant?.length || "";
+  const selectedColor = selectedVariant?.color || "";
+
+  const handleVariantSelect = (v: VariantType) => {
+    setSelectedVariant(v);
+    setQuantity(1);
+  };
+
+  const handleAddToCart = () => {
+    if (hasVariants && !selectedVariant) {
+      toast.error("Please select a length/color option");
+      return;
+    }
+    onAddToCart(product, selectedVariant || undefined, quantity);
+    onOpenChange(false);
+  };
+
+  // Price display for range
+  const priceDisplay = (() => {
+    if (!hasVariants) return null;
+    const prices = product.variants!.map(v => v.price);
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    return { min, max, isRange: min !== max };
+  })();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -875,36 +946,134 @@ function ProductDetailModal({ product, open, onOpenChange, onAddToCart, onWriteR
             </div>
             {/* Price */}
             <div className="flex items-center gap-3 mb-4">
-              <span className="text-3xl font-bold text-gold">${product.price}</span>
-              {product.originalPrice && <span className="text-lg text-muted-foreground line-through">${product.originalPrice}</span>}
-              {product.originalPrice && <Badge className="bg-pink text-white text-xs border-0">-{Math.round((1 - product.price / product.originalPrice) * 100)}%</Badge>}
+              {selectedVariant ? (
+                <>
+                  <span className="text-3xl font-bold text-gold">${selectedVariant.price}</span>
+                  {selectedVariant.originalPrice && <span className="text-lg text-muted-foreground line-through">${selectedVariant.originalPrice}</span>}
+                  {selectedVariant.originalPrice && <Badge className="bg-pink text-white text-xs border-0">-{Math.round((1 - selectedVariant.price / selectedVariant.originalPrice) * 100)}%</Badge>}
+                </>
+              ) : hasVariants ? (
+                <>
+                  <span className="text-3xl font-bold text-gold">${priceDisplay!.min}{priceDisplay!.isRange ? ` - $${priceDisplay!.max}` : ''}</span>
+                  {product.originalPrice && <span className="text-lg text-muted-foreground line-through">${product.originalPrice}</span>}
+                </>
+              ) : (
+                <>
+                  <span className="text-3xl font-bold text-gold">${product.price}</span>
+                  {product.originalPrice && <span className="text-lg text-muted-foreground line-through">${product.originalPrice}</span>}
+                  {product.originalPrice && <Badge className="bg-pink text-white text-xs border-0">-{Math.round((1 - product.price / product.originalPrice) * 100)}%</Badge>}
+                </>
+              )}
             </div>
             {/* Stock */}
             <div className="flex items-center gap-2 mb-6">
               <Package className="w-4 h-4 text-muted-foreground" />
               <span className={`text-sm font-medium ${stockColor}`}>{stockStatus}</span>
             </div>
-            {/* Lengths */}
-            {product.lengths.length > 0 && (
-              <div className="mb-4">
-                <label className="text-sm text-white/80 mb-2 block">Length</label>
-                <div className="flex flex-wrap gap-2">
-                  {product.lengths.map((l) => (
-                    <button key={l} onClick={() => setSelectedLength(l)} className={`px-3 py-1.5 rounded-full text-xs border transition-all ${selectedLength === l ? "bg-gold text-luxury-black border-gold" : "border-luxury-border text-white/70 hover:border-gold hover:text-gold"}`}>{l}</button>
-                  ))}
-                </div>
+
+            {/* Variant Selection - when product has variants */}
+            {hasVariants ? (
+              <div className="space-y-4 mb-6">
+                {/* Length selector */}
+                {variantLengths.length > 0 && (
+                  <div>
+                    <label className="text-sm text-white/80 mb-2 block">
+                      Length {selectedLength && <span className="text-gold text-xs ml-1">({selectedLength})</span>}
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {variantLengths.map((l) => {
+                        const isSelected = selectedVariant?.length === l;
+                        const hasOptions = product!.variants!.some(v => v.length === l && (!selectedColor || v.color === selectedColor));
+                        return (
+                          <button key={l} onClick={() => {
+                            // Find best matching variant
+                            const match = product!.variants!.find(v => v.length === l && (!selectedColor || v.color === selectedColor));
+                            if (match) handleVariantSelect(match);
+                          }} disabled={!hasOptions}
+                            className={`px-3 py-1.5 rounded-full text-xs border transition-all ${isSelected ? "bg-gold text-luxury-black border-gold" : hasOptions ? "border-luxury-border text-white/70 hover:border-gold hover:text-gold" : "border-luxury-border/30 text-white/30 cursor-not-allowed"}`}>
+                            {l}
+                            {(() => {
+                              const matchingVariants = product!.variants!.filter(v => v.length === l);
+                              const prices = matchingVariants.map(v => v.price);
+                              const min = Math.min(...prices);
+                              const max = Math.max(...prices);
+                              return min !== max ? ` ($${min}-${max})` : ` ($${min})`;
+                            })()}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {/* Color selector */}
+                {variantColors.length > 0 && (
+                  <div>
+                    <label className="text-sm text-white/80 mb-2 block">
+                      Color {selectedColor && <span className="text-pink text-xs ml-1">({selectedColor})</span>}
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                      {variantColors.map((c) => {
+                        const isSelected = selectedVariant?.color === c;
+                        const hasOptions = product!.variants!.some(v => v.color === c && (!selectedLength || v.length === selectedLength));
+                        return (
+                          <button key={c} onClick={() => {
+                            const match = product!.variants!.find(v => v.color === c && (!selectedLength || v.length === selectedLength));
+                            if (match) handleVariantSelect(match);
+                          }} disabled={!hasOptions}
+                            className={`px-3 py-1.5 rounded-full text-xs border transition-all ${isSelected ? "bg-pink text-white border-pink" : hasOptions ? "border-luxury-border text-white/70 hover:border-pink hover:text-pink" : "border-luxury-border/30 text-white/30 cursor-not-allowed"}`}>
+                            {c}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+                {/* Selected variant info */}
+                {selectedVariant && (
+                  <div className="bg-gold/10 border border-gold/20 rounded-xl p-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex gap-2">
+                        {selectedVariant.length && <Badge variant="outline" className="text-xs border-gold/30 text-gold">{selectedVariant.length}</Badge>}
+                        {selectedVariant.color && <Badge variant="outline" className="text-xs border-pink/30 text-pink">{selectedVariant.color}</Badge>}
+                      </div>
+                      <div className="text-right">
+                        <span className="text-gold font-bold">${selectedVariant.price}</span>
+                        {selectedVariant.originalPrice && <span className="text-xs text-muted-foreground line-through ml-1">${selectedVariant.originalPrice}</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className={`text-xs ${selectedVariant.stock <= 5 ? "text-orange-400" : "text-green-400"}`}>
+                        {selectedVariant.stock <= 0 ? "Out of stock" : `${selectedVariant.stock} in stock`}
+                      </span>
+                      {selectedVariant.sku && <span className="text-xs text-muted-foreground">| SKU: {selectedVariant.sku}</span>}
+                    </div>
+                  </div>
+                )}
               </div>
-            )}
-            {/* Colors */}
-            {product.colors.length > 0 && (
-              <div className="mb-6">
-                <label className="text-sm text-white/80 mb-2 block">Color</label>
-                <div className="flex flex-wrap gap-2">
-                  {product.colors.map((c) => (
-                    <button key={c} onClick={() => setSelectedColor(c)} className={`px-3 py-1.5 rounded-full text-xs border transition-all ${selectedColor === c ? "bg-gold text-luxury-black border-gold" : "border-luxury-border text-white/70 hover:border-gold hover:text-gold"}`}>{c}</button>
-                  ))}
-                </div>
-              </div>
+            ) : (
+              <>
+                {/* Fallback: original lengths/colors (no variants) */}
+                {product.lengths.length > 0 && (
+                  <div className="mb-4">
+                    <label className="text-sm text-white/80 mb-2 block">Length</label>
+                    <div className="flex flex-wrap gap-2">
+                      {product.lengths.map((l) => (
+                        <button key={l} className={`px-3 py-1.5 rounded-full text-xs border border-luxury-border text-white/70 hover:border-gold hover:text-gold transition-all`}>{l}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {product.colors.length > 0 && (
+                  <div className="mb-6">
+                    <label className="text-sm text-white/80 mb-2 block">Color</label>
+                    <div className="flex flex-wrap gap-2">
+                      {product.colors.map((c) => (
+                        <button key={c} className={`px-3 py-1.5 rounded-full text-xs border border-luxury-border text-white/70 hover:border-gold hover:text-gold transition-all`}>{c}</button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
             {/* Quantity */}
             <div className="flex items-center gap-3 mb-6">
@@ -916,8 +1085,8 @@ function ProductDetailModal({ product, open, onOpenChange, onAddToCart, onWriteR
               </div>
             </div>
             {/* Add to Cart */}
-            <Button onClick={() => { onAddToCart(product); onOpenChange(false); }} disabled={product.stock <= 0} className={`w-full font-semibold py-6 rounded-full text-sm transition-all ${product.stock <= 0 ? "bg-luxury-gray text-muted-foreground cursor-not-allowed" : "gold-gradient text-luxury-black hover:opacity-90 shadow-lg shadow-gold/20"}`}>
-              {product.stock <= 0 ? "Out of Stock" : <><ShoppingBag className="w-4 h-4 mr-2" />Add to Cart — ${(product.price * quantity).toFixed(2)}</>}
+            <Button onClick={handleAddToCart} disabled={currentStock <= 0} className={`w-full font-semibold py-6 rounded-full text-sm transition-all ${currentStock <= 0 ? "bg-luxury-gray text-muted-foreground cursor-not-allowed" : "gold-gradient text-luxury-black hover:opacity-90 shadow-lg shadow-gold/20"}`}>
+              {currentStock <= 0 ? "Out of Stock" : <><ShoppingBag className="w-4 h-4 mr-2" />Add to Cart — ${(currentPrice * quantity).toFixed(2)}</>}
             </Button>
             {/* Wishlist + Review buttons */}
             <div className="flex gap-3 mt-3">
@@ -1240,13 +1409,21 @@ function WhatsAppButton({ whatsappNumber }: { whatsappNumber: string }) {
 /* ─────────── Cart Drawer ─────────── */
 
 function CartDrawer({ open, onOpenChange, items, onUpdateQuantity, onRemove, whatsappNumber }: { open: boolean; onOpenChange: (open: boolean) => void; items: CartItem[]; onUpdateQuantity: (id: string, qty: number) => void; onRemove: (id: string) => void; whatsappNumber: string }) {
-  const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const total = items.reduce((sum, item) => {
+    const price = item.variant ? item.variant.price : item.product.price;
+    return sum + price * item.quantity;
+  }, 0);
   const [checkingOut, setCheckingOut] = useState(false);
 
   const handleCheckout = () => {
     if (items.length === 0) return;
     setCheckingOut(true);
-    const lines = items.map((item) => `• ${item.product.name} x${item.quantity} — $${(item.product.price * item.quantity).toFixed(2)}`);
+    const lines = items.map((item) => {
+      const price = item.variant ? item.variant.price : item.product.price;
+      const variantInfo = item.variant ? [item.variant.length, item.variant.color].filter(Boolean).join(" / ") : "";
+      const name = variantInfo ? `${item.product.name} (${variantInfo})` : item.product.name;
+      return `• ${name} x${item.quantity} — $${(price * item.quantity).toFixed(2)}`;
+    });
     const message = `Hi! I'd like to place an order:\n\n${lines.join("\n")}\n\nTotal: $${total.toFixed(2)}`;
     const encoded = encodeURIComponent(message);
     toast.success("Redirecting to WhatsApp for checkout...");
@@ -1276,7 +1453,13 @@ function CartDrawer({ open, onOpenChange, items, onUpdateQuantity, onRemove, wha
                     <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0"><img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" /></div>
                     <div className="flex-1 min-w-0">
                       <h4 className="text-sm font-semibold text-white truncate">{item.product.name}</h4>
-                      <p className="text-gold text-sm font-bold mt-1">${item.product.price}</p>
+                      {item.variant && (
+                        <div className="flex gap-1 mt-1">
+                          {item.variant.length && <Badge variant="outline" className="text-[10px] border-gold/30 text-gold">{item.variant.length}</Badge>}
+                          {item.variant.color && <Badge variant="outline" className="text-[10px] border-pink/30 text-pink">{item.variant.color}</Badge>}
+                        </div>
+                      )}
+                      <p className="text-gold text-sm font-bold mt-1">${item.variant ? item.variant.price : item.product.price}</p>
                       <div className="flex items-center gap-2 mt-2">
                         <Button size="icon" variant="outline" className="w-7 h-7 border-luxury-border text-white hover:bg-luxury-gray" onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}><Minus className="w-3 h-3" /></Button>
                         <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
@@ -1401,13 +1584,16 @@ export default function Home() {
       .catch(() => {});
   }, []);
 
-  const addToCart = useCallback((product: ProductType) => {
+  const addToCart = useCallback((product: ProductType, variant?: VariantType, qty: number = 1) => {
+    const cartId = variant ? `${product.id}-${variant.id}` : product.id;
+    const price = variant ? variant.price : product.price;
+    const variantLabel = variant ? [variant.length, variant.color].filter(Boolean).join(" / ") : "";
     setCart((prev) => {
-      const existing = prev.find((item) => item.id === product.id);
-      if (existing) return prev.map((item) => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
-      return [...prev, { id: product.id, product, quantity: 1 }];
+      const existing = prev.find((item) => item.id === cartId);
+      if (existing) return prev.map((item) => item.id === cartId ? { ...item, quantity: item.quantity + qty } : item);
+      return [...prev, { id: cartId, product, quantity: qty, variant }];
     });
-    toast.success(`${product.name} added to cart!`, { description: `$${product.price} — View your cart`, action: { label: "View Cart", onClick: () => setCartOpen(true) } });
+    toast.success(`${product.name}${variantLabel ? ` (${variantLabel})` : ""} added to cart!`, { description: `$${price} — View your cart`, action: { label: "View Cart", onClick: () => setCartOpen(true) } });
   }, []);
 
   const updateQuantity = useCallback((id: string, qty: number) => {

@@ -19,6 +19,12 @@ export async function GET(request: NextRequest) {
     const products = await db.product.findMany({
       where,
       orderBy: { createdAt: "desc" },
+      include: {
+        variants: {
+          where: { active: true },
+          orderBy: { price: "asc" },
+        },
+      },
     });
 
     return NextResponse.json(products);

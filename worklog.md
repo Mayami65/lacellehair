@@ -207,3 +207,42 @@ Stage Summary:
 - Touch targets meet minimum 40px+ size
 - Mobile users see instant content, no jank or delayed renders
 
+
+---
+Task ID: 3
+Agent: Main Agent
+Task: Add variant prices for different wig lengths/colors
+
+Work Log:
+- Added ProductVariant model to Prisma schema (id, productId, length, color, price, originalPrice, stock, sku, active)
+- Ran prisma db push + prisma generate to apply migration
+- Created /api/variants/route.ts with full CRUD (GET with productId filter, POST, PUT, DELETE)
+- Updated /api/products/route.ts GET to include variants (eager loading with include)
+- Added ProductVariant interface to AdminPanel.tsx
+- Created VariantsManager component in AdminPanel.tsx with inline add/edit/delete UI
+- Added VariantsManager to product edit dialog (shown only for existing products, after save/cancel buttons)
+- Updated admin product cards to show variant count badge
+- Added VariantType interface to page.tsx
+- Updated ProductType to include optional variants array
+- Updated CartItem to include optional variant
+- Updated ProductCard to show price range ($min - $max) when variants exist, with "N length/color options" label
+- Completely rewrote ProductDetailModal to support variant selection:
+  - When variants exist: shows length buttons with price hints, color buttons, selected variant info box
+  - Price updates dynamically based on selected variant
+  - Stock status updates per variant
+  - Shows SKU when available
+  - Validates that a variant is selected before adding to cart
+  - Falls back to basic length/color display when no variants
+- Updated addToCart to accept optional variant and quantity parameters
+- Cart item IDs now use "productId-variantId" format when variant selected
+- Updated CartDrawer total calculation to use variant prices
+- Updated CartDrawer WhatsApp checkout message to include variant details (length/color)
+- Updated CartDrawer item display to show variant badges and variant price
+- Build successful with zero errors
+
+Stage Summary:
+- Variant pricing system fully implemented across all layers: database, API, admin, storefront
+- Admin can add/edit/delete variants per product with length, color, price, original price, stock, and SKU
+- Storefront product cards show price ranges when variants exist
+- Product detail modal has full variant selection with dynamic price updates
+- Cart and WhatsApp checkout include variant details (length, color, specific price)
