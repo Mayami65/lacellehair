@@ -545,9 +545,15 @@ function ProductCard({ product, onAddToCart, onClick, isWishlisted, onToggleWish
             </Button>
           </div>
           <div className="absolute bottom-3 left-3 right-3 sm:opacity-0 sm:group-hover:opacity-100 sm:translate-y-2 sm:group-hover:translate-y-0 transition-all duration-300 opacity-100 translate-y-0">
-            <Button onClick={(e) => { e.stopPropagation(); onAddToCart(product); }} className="w-full gold-gradient text-luxury-black font-semibold rounded-full py-4 sm:py-5 text-sm shadow-lg shadow-gold/20 hover:opacity-90">
-              <ShoppingBag className="w-4 h-4 mr-2" />Quick Add
-            </Button>
+            {product.variants && product.variants.length > 0 ? (
+              <Button onClick={(e) => { e.stopPropagation(); onClick(product); }} className="w-full pink-gradient text-white font-semibold rounded-full py-4 sm:py-5 text-sm shadow-lg shadow-pink/20 hover:opacity-90">
+                <Sparkles className="w-4 h-4 mr-2" />Select Options
+              </Button>
+            ) : (
+              <Button onClick={(e) => { e.stopPropagation(); onAddToCart(product); }} className="w-full gold-gradient text-luxury-black font-semibold rounded-full py-4 sm:py-5 text-sm shadow-lg shadow-gold/20 hover:opacity-90">
+                <ShoppingBag className="w-4 h-4 mr-2" />Quick Add
+              </Button>
+            )}
           </div>
         </div>
         <div className="p-4">
