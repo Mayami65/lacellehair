@@ -111,7 +111,7 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
           <div className="w-16 h-16 rounded-full gold-gradient flex items-center justify-center mx-auto mb-4">
             <Package className="w-8 h-8 text-luxury-black" />
           </div>
-          <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>LACELLE <span className="text-gold">HAIR</span></h1>
+          <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>LACELLE <span className="pink-shimmer">HAIR</span></h1>
           <p className="text-muted-foreground text-sm mt-1">Admin Dashboard</p>
         </div>
         <form onSubmit={handleLogin} className="bg-luxury-dark border border-luxury-border rounded-2xl p-6 space-y-4">
@@ -583,9 +583,9 @@ export default function AdminPanel() {
               </a>
               <Separator orientation="vertical" className="h-6 bg-luxury-border" />
               <h1 className="text-lg font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>
-                LACELLE <span className="text-gold">HAIR</span>
+                LACELLE <span className="text-pink">HAIR</span>
               </h1>
-              <Badge variant="outline" className="border-gold/30 text-gold text-[10px]">Admin</Badge>
+              <Badge variant="outline" className="border-pink/30 text-pink text-[10px]">Admin</Badge>
             </div>
             <Button variant="ghost" size="sm" onClick={handleLogout} className="text-muted-foreground hover:text-pink">
               <LogOut className="w-4 h-4 mr-1" />Logout
@@ -600,7 +600,7 @@ export default function AdminPanel() {
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="bg-luxury-dark border border-luxury-border rounded-xl p-1 mb-6">
               {tabs.map((t) => (
-                <TabsTrigger key={t.value} value={t.value} className="data-[state=active]:bg-gold data-[state=active]:text-luxury-black text-white/70 rounded-lg px-4 flex items-center gap-2 text-sm">
+                <TabsTrigger key={t.value} value={t.value} className="data-[state=active]:bg-pink data-[state=active]:text-white text-white/70 rounded-lg px-4 flex items-center gap-2 text-sm">
                   <t.icon className="w-4 h-4" />{t.label}
                 </TabsTrigger>
               ))}
@@ -616,7 +616,7 @@ export default function AdminPanel() {
         {/* Mobile Bottom Tabs */}
         <div className="md:hidden fixed bottom-0 left-0 right-0 bg-luxury-dark border-t border-luxury-border z-50 flex safe-area-inset-bottom">
           {tabs.map((t) => (
-            <button key={t.value} onClick={() => setActiveTab(t.value)} className={`flex-1 flex flex-col items-center gap-1 py-3 transition-colors ${activeTab === t.value ? "text-gold" : "text-muted-foreground"}`}>
+            <button key={t.value} onClick={() => setActiveTab(t.value)} className={`flex-1 flex flex-col items-center gap-1 py-3 transition-colors ${activeTab === t.value ? "text-pink" : "text-muted-foreground"}`}>
               <t.icon className="w-5 h-5" />
               <span className="text-[10px]">{t.label}</span>
             </button>

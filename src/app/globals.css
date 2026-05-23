@@ -167,7 +167,7 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #D4A843;
+  background: #E84393;
 }
 
 /* Gold shimmer animation */
@@ -221,6 +221,21 @@
   animation: pinkGlow 2s ease-in-out infinite;
 }
 
+/* Pink shimmer animation */
+@keyframes pinkShimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+.pink-shimmer {
+  background: linear-gradient(90deg, #E84393 0%, #FD79A8 25%, #E84393 50%, #FD79A8 75%, #E84393 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: pinkShimmer 4s linear infinite;
+}
+
 /* Luxury gradient backgrounds */
 .luxury-gradient {
   background: linear-gradient(135deg, #0A0A0A 0%, #1A1A1A 50%, #0A0A0A 100%);
@@ -232,6 +247,16 @@
 
 .pink-gradient {
   background: linear-gradient(135deg, #E84393 0%, #FD79A8 100%);
+}
+
+/* Gold to pink gradient */
+.gold-pink-gradient {
+  background: linear-gradient(135deg, #D4A843 0%, #E84393 50%, #FD79A8 100%);
+}
+
+/* Pink to gold gradient */
+.pink-gold-gradient {
+  background: linear-gradient(135deg, #E84393 0%, #D4A843 100%);
 }
 
 /* Image hover zoom */
@@ -247,8 +272,8 @@
   transform: scale(1.08);
 }
 
-/* Selection color */
+/* Selection color - pink tint */
 ::selection {
-  background-color: rgba(212, 168, 67, 0.3);
+  background-color: rgba(232, 67, 147, 0.3);
   color: #F5F5F5;
 }

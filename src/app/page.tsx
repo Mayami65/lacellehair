@@ -172,7 +172,7 @@ function SectionHeading({ subtitle, title, description }: { subtitle: string; ti
       <span className="text-sm tracking-[0.3em] uppercase text-gold font-medium">{subtitle}</span>
       <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mt-3 mb-4 text-white">{title}</h2>
       {description && <p className="text-muted-foreground max-w-2xl mx-auto text-base md:text-lg leading-relaxed">{description}</p>}
-      <div className="mt-6 mx-auto w-20 h-[2px] bg-gradient-to-r from-transparent via-gold to-transparent" />
+      <div className="mt-6 mx-auto w-24 h-[2px] bg-gradient-to-r from-transparent via-pink to-transparent" />
     </motion.div>
   );
 }
@@ -329,7 +329,7 @@ function Navbar({ cartCount, onCartOpen, onSearchOpen, wishlistCount, onWishlist
 
   return (
     <>
-      <div className="bg-gradient-to-r from-gold-dark via-gold to-gold-dark text-luxury-black text-center py-2 px-4 text-xs md:text-sm font-semibold tracking-wide">
+      <div className="bg-gradient-to-r from-pink-dark via-pink to-pink-dark text-white text-center py-2 px-4 text-xs md:text-sm font-semibold tracking-wide">
         <div className="flex items-center justify-center gap-2">
           <Crown className="w-3.5 h-3.5" />
           <span>FREE SHIPPING on orders over $200 | Use code {promoCode} for 20% off</span>
@@ -349,14 +349,14 @@ function Navbar({ cartCount, onCartOpen, onSearchOpen, wishlistCount, onWishlist
                 <Crown className="w-4 h-4 md:w-5 md:h-5 text-luxury-black" />
               </div>
               <h1 className="text-xl md:text-2xl font-bold text-white tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
-                LACELLE <span className="text-gold">HAIR</span>
+                LACELLE <span className="pink-shimmer">HAIR</span>
               </h1>
             </a>
             <div className="hidden md:flex items-center gap-8">
               {NAV_LINKS.map((link) => (
-                <a key={link.label} href={link.href} onClick={(e) => { e.preventDefault(); handleNavClick(link.href); }} className="text-sm text-white/80 hover:text-gold transition-colors duration-300 tracking-wide uppercase relative group">
+                <a key={link.label} href={link.href} onClick={(e) => { e.preventDefault(); handleNavClick(link.href); }} className="text-sm text-white/80 hover:text-pink transition-colors duration-300 tracking-wide uppercase relative group">
                   {link.label}
-                  <span className="absolute -bottom-1 left-0 w-0 h-[2px] bg-gold transition-all duration-300 group-hover:w-full" />
+                  <span className="absolute -bottom-1 left-0 w-0 h-[2px] bg-gradient-to-r from-pink to-gold transition-all duration-300 group-hover:w-full" />
                 </a>
               ))}
             </div>
@@ -406,8 +406,9 @@ function HeroSection() {
         <div className="absolute inset-0"><img src={slides[0].image} alt="Luxury Hair" className="w-full h-full object-cover" /></div>
         <div className="absolute inset-0 bg-gradient-to-r from-luxury-black via-luxury-black/80 to-luxury-black/30" />
         <div className="absolute inset-0 bg-gradient-to-t from-luxury-black via-transparent to-luxury-black/40" />
-        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-pink/10 rounded-full blur-[120px]" />
-        <div className="absolute top-1/4 right-0 w-80 h-80 bg-gold/10 rounded-full blur-[100px]" />
+        <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-pink/20 rounded-full blur-[120px]" />
+        <div className="absolute top-1/4 right-0 w-80 h-80 bg-pink/15 rounded-full blur-[100px]" />
+        <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-gold/10 rounded-full blur-[80px]" />
       </div>
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
         <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.2 }} className="max-w-2xl">
@@ -424,7 +425,7 @@ function HeroSection() {
               <Button size="lg" className="gold-gradient text-luxury-black font-semibold px-8 py-6 text-sm sm:text-base rounded-full hover:opacity-90 transition-all shadow-lg shadow-gold/20 hover:shadow-gold/40">{slides[0].cta}<ChevronRight className="w-4 h-4 ml-1" /></Button>
             </a>
             <a href="#categories" onClick={(e) => { e.preventDefault(); document.querySelector("#categories")?.scrollIntoView({ behavior: "smooth" }); }}>
-              <Button size="lg" variant="outline" className="border-white/30 text-white hover:bg-white/10 hover:border-pink px-8 py-6 text-sm sm:text-base rounded-full transition-all">Browse Collections</Button>
+              <Button size="lg" variant="outline" className="border-pink/40 text-pink-light hover:bg-pink/10 hover:border-pink px-8 py-6 text-sm sm:text-base rounded-full transition-all">Browse Collections</Button>
             </a>
           </motion.div>
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }} className="flex flex-wrap gap-8 mt-12 pt-8 border-t border-white/10">
@@ -462,7 +463,7 @@ function CategoriesSection({ onCategoryClick }: { onCategoryClick: (category: st
                   <Badge variant="secondary" className="w-fit bg-white/10 backdrop-blur-sm border-white/20 text-white text-xs mb-3">{cat.count} Products</Badge>
                   <h3 className="text-xl md:text-2xl font-bold text-white mb-1" style={{ fontFamily: "var(--font-display)" }}>{cat.name}</h3>
                   <p className="text-white/60 text-sm mb-4 line-clamp-2">{cat.description}</p>
-                  <div className="flex items-center gap-2 text-gold text-sm font-medium group-hover:gap-3 transition-all"><span>Shop Now</span><ChevronRight className="w-4 h-4" /></div>
+                  <div className="flex items-center gap-2 text-pink-light text-sm font-medium group-hover:gap-3 transition-all"><span>Shop Now</span><ChevronRight className="w-4 h-4" /></div>
                 </div>
               </div>
             </motion.div>
@@ -489,7 +490,7 @@ function ProductCard({ product, onAddToCart, onClick, isWishlisted, onToggleWish
 
   return (
     <motion.div ref={ref} initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5 }} className="group">
-      <div className="relative bg-luxury-dark rounded-2xl overflow-hidden border border-luxury-border hover:border-gold/30 transition-all duration-500 hover:shadow-xl hover:shadow-gold/5 cursor-pointer" onClick={() => onClick(product)}>
+      <div className="relative bg-luxury-dark rounded-2xl overflow-hidden border border-luxury-border hover:border-pink/30 transition-all duration-500 hover:shadow-xl hover:shadow-pink/5 cursor-pointer" onClick={() => onClick(product)}>
         <div className="relative aspect-square overflow-hidden">
           <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
           <div className="absolute inset-0 bg-luxury-black/0 group-hover:bg-luxury-black/20 transition-colors duration-500" />
@@ -575,14 +576,14 @@ function AboutSection() {
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   return (
     <section id="about" className="py-20 md:py-28 bg-luxury-black relative overflow-hidden">
-      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gold/5 rounded-full blur-[150px]" />
+      <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-pink/8 rounded-full blur-[150px]" />
       <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-pink/5 rounded-full blur-[120px]" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <SectionHeading subtitle="Our Promise" title="Why Choose LACELLE HAIR" description="We believe every woman deserves to feel confident and beautiful. Our mission is to provide the highest quality hair at accessible prices" />
         <div ref={ref} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {TRUST_ITEMS.map((item, i) => (
-            <motion.div key={item.title} initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5, delay: i * 0.1 }} className="group p-6 md:p-8 rounded-2xl border border-luxury-border bg-luxury-dark/50 hover:border-gold/30 hover:bg-luxury-dark transition-all duration-500 hover:shadow-lg hover:shadow-gold/5">
-              <div className="w-14 h-14 rounded-xl gold-gradient flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300"><item.icon className="w-7 h-7 text-luxury-black" /></div>
+            <motion.div key={item.title} initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5, delay: i * 0.1 }} className={`group p-6 md:p-8 rounded-2xl border border-luxury-border bg-luxury-dark/50 hover:bg-luxury-dark transition-all duration-500 hover:shadow-lg ${i % 2 === 0 ? 'hover:border-pink/30 hover:shadow-pink/5' : 'hover:border-gold/30 hover:shadow-gold/5'}`}>
+              <div className={`w-14 h-14 rounded-xl ${i % 2 === 0 ? 'pink-gradient' : 'gold-gradient'} flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}><item.icon className="w-7 h-7 text-white" /></div>
               <h3 className="text-lg font-bold text-white mb-3" style={{ fontFamily: "var(--font-display)" }}>{item.title}</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">{item.description}</p>
             </motion.div>
@@ -642,7 +643,7 @@ function TestimonialsSection({ onWriteReview }: { onWriteReview: () => void }) {
           </AnimatePresence>
           <div className="flex justify-center gap-2 mt-8">
             {TESTIMONIALS.map((_, i) => (
-              <button key={i} onClick={() => setActiveIndex(i)} className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${i === activeIndex ? "bg-gold w-8" : "bg-luxury-border hover:bg-white/30"}`} />
+              <button key={i} onClick={() => setActiveIndex(i)} className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${i === activeIndex ? "bg-pink w-8" : "bg-luxury-border hover:bg-pink/50"}`} />
             ))}
           </div>
         </div>
@@ -936,16 +937,16 @@ function NewsletterSection() {
   };
   return (
     <section className="py-20 md:py-24 bg-luxury-black relative overflow-hidden">
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-pink/5 rounded-full blur-[200px]" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-pink/10 rounded-full blur-[200px]" />
       <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gold/5 rounded-full blur-[150px]" />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
         <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
           <div className="inline-flex items-center gap-2 text-pink text-sm mb-4"><Mail className="w-4 h-4" /><span className="tracking-wide uppercase">Join the Club</span></div>
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4" style={{ fontFamily: "var(--font-display)" }}>Get <span className="text-gold">15% Off</span> Your First Order</h2>
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4" style={{ fontFamily: "var(--font-display)" }}>Get <span className="pink-shimmer">15% Off</span> Your First Order</h2>
           <p className="text-muted-foreground mb-8 max-w-lg mx-auto">Subscribe to our newsletter for exclusive deals, early access to new arrivals, hair care tips, and VIP-only promotions</p>
           <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
-            <Input type="email" placeholder="Enter your email address" value={email} onChange={(e) => setEmail(e.target.value)} className="flex-1 h-12 bg-luxury-dark border-luxury-border rounded-full px-6 text-white placeholder:text-white/30 focus:border-gold focus:ring-gold/20" required />
-            <Button type="submit" className="gold-gradient text-luxury-black font-semibold h-12 px-8 rounded-full hover:opacity-90 transition-all shadow-lg shadow-gold/20">Subscribe<Sparkles className="w-4 h-4 ml-2" /></Button>
+            <Input type="email" placeholder="Enter your email address" value={email} onChange={(e) => setEmail(e.target.value)} className="flex-1 h-12 bg-luxury-dark border-luxury-border rounded-full px-6 text-white placeholder:text-white/30 focus:border-pink focus:ring-pink/20" required />
+            <Button type="submit" className="pink-gradient text-white font-semibold h-12 px-8 rounded-full hover:opacity-90 transition-all shadow-lg shadow-pink/20">Subscribe<Sparkles className="w-4 h-4 ml-2" /></Button>
           </form>
           <p className="text-xs text-muted-foreground mt-4">No spam, unsubscribe anytime. We respect your privacy.</p>
         </motion.div>
@@ -987,8 +988,8 @@ function ContactSection({ siteEmail, sitePhone }: { siteEmail: string; sitePhone
 
   return (
     <section id="contact" className="py-20 md:py-28 bg-luxury-black relative overflow-hidden">
-      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-gold/5 rounded-full blur-[150px]" />
-      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-pink/5 rounded-full blur-[120px]" />
+      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-pink/5 rounded-full blur-[150px]" />
+      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-pink/8 rounded-full blur-[120px]" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
         <SectionHeading subtitle="Get In Touch" title="Contact Us" description="Have a question or need help? We'd love to hear from you. Send us a message and we'll respond as soon as possible." />
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
@@ -996,7 +997,7 @@ function ContactSection({ siteEmail, sitePhone }: { siteEmail: string; sitePhone
           <div className="lg:col-span-2 space-y-6">
             <div className="p-6 rounded-2xl border border-luxury-border bg-luxury-dark/50 space-y-6">
               <div className="flex items-start gap-4">
-                <div className="w-11 h-11 rounded-xl gold-gradient flex items-center justify-center flex-shrink-0"><Mail className="w-5 h-5 text-luxury-black" /></div>
+                <div className="w-11 h-11 rounded-xl pink-gradient flex items-center justify-center flex-shrink-0"><Mail className="w-5 h-5 text-white" /></div>
                 <div><p className="text-white font-semibold text-sm">Email Us</p><p className="text-muted-foreground text-sm mt-1">{siteEmail}</p></div>
               </div>
               <div className="flex items-start gap-4">
@@ -1004,7 +1005,7 @@ function ContactSection({ siteEmail, sitePhone }: { siteEmail: string; sitePhone
                 <div><p className="text-white font-semibold text-sm">Call Us</p><p className="text-muted-foreground text-sm mt-1">{sitePhone}</p></div>
               </div>
               <div className="flex items-start gap-4">
-                <div className="w-11 h-11 rounded-xl gold-gradient flex items-center justify-center flex-shrink-0"><Clock className="w-5 h-5 text-luxury-black" /></div>
+                <div className="w-11 h-11 rounded-xl pink-gradient flex items-center justify-center flex-shrink-0"><Clock className="w-5 h-5 text-white" /></div>
                 <div><p className="text-white font-semibold text-sm">Business Hours</p><p className="text-muted-foreground text-sm mt-1">Mon – Fri: 9AM – 6PM EST</p><p className="text-muted-foreground text-sm">Sat: 10AM – 4PM EST</p></div>
               </div>
               <div className="flex items-start gap-4">
@@ -1013,7 +1014,7 @@ function ContactSection({ siteEmail, sitePhone }: { siteEmail: string; sitePhone
               </div>
             </div>
             <div className="p-6 rounded-2xl border border-luxury-border bg-gradient-to-r from-luxury-dark via-luxury-gray/30 to-luxury-dark">
-              <p className="text-gold font-semibold text-sm mb-2">Quick Response Promise</p>
+              <p className="text-pink font-semibold text-sm mb-2">Quick Response Promise</p>
               <p className="text-muted-foreground text-sm leading-relaxed">We aim to respond to all inquiries within 24 hours during business days. For urgent matters, please call us directly.</p>
             </div>
           </div>
@@ -1029,7 +1030,7 @@ function ContactSection({ siteEmail, sitePhone }: { siteEmail: string; sitePhone
                 <div><label className="text-sm text-white/80 mb-1.5 block">Subject *</label><Input value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} className="bg-luxury-gray border-luxury-border text-white" placeholder="How can we help?" required /></div>
               </div>
               <div><label className="text-sm text-white/80 mb-1.5 block">Message *</label><Textarea value={form.message} onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))} className="bg-luxury-gray border-luxury-border text-white min-h-[140px]" placeholder="Tell us more..." required /></div>
-              <Button type="submit" disabled={submitting} className="w-full gold-gradient text-luxury-black font-semibold py-3 rounded-full hover:opacity-90 transition-all">
+              <Button type="submit" disabled={submitting} className="w-full pink-gradient text-white font-semibold py-3 rounded-full hover:opacity-90 transition-all">
                 {submitting ? "Sending..." : <><Send className="w-4 h-4 mr-2" />Send Message</>}
               </Button>
             </form>
@@ -1126,25 +1127,25 @@ function Footer({ onShopLinkClick, onHelpLinkClick, onLegalClick, socialUrls, si
           <div className="sm:col-span-2 lg:col-span-1">
             <div className="flex items-center gap-2 mb-4">
               <div className="w-9 h-9 rounded-full gold-gradient flex items-center justify-center"><Crown className="w-4 h-4 text-luxury-black" /></div>
-              <h3 className="text-xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>LACELLE <span className="text-gold">HAIR</span></h3>
+              <h3 className="text-xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>LACELLE <span className="pink-shimmer">HAIR</span></h3>
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed mb-6">Premium hair extensions and wigs sourced from the finest donors around the world. Elevate your beauty with confidence.</p>
             <div className="flex gap-3">
-              <a href={socialUrls.instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-luxury-border flex items-center justify-center text-white/60 hover:text-gold hover:border-gold/50 transition-all"><Instagram className="w-4 h-4" /></a>
-              <a href={socialUrls.facebook} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-luxury-border flex items-center justify-center text-white/60 hover:text-gold hover:border-gold/50 transition-all"><Facebook className="w-4 h-4" /></a>
-              <a href={socialUrls.tiktok} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-luxury-border flex items-center justify-center text-white/60 hover:text-gold hover:border-gold/50 transition-all"><Twitter className="w-4 h-4" /></a>
+              <a href={socialUrls.instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-luxury-border flex items-center justify-center text-white/60 hover:text-pink hover:border-pink/50 hover:bg-pink/10 transition-all"><Instagram className="w-4 h-4" /></a>
+              <a href={socialUrls.facebook} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-luxury-border flex items-center justify-center text-white/60 hover:text-pink hover:border-pink/50 hover:bg-pink/10 transition-all"><Facebook className="w-4 h-4" /></a>
+              <a href={socialUrls.tiktok} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-luxury-border flex items-center justify-center text-white/60 hover:text-pink hover:border-pink/50 hover:bg-pink/10 transition-all"><Twitter className="w-4 h-4" /></a>
             </div>
           </div>
           <div>
             <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Shop</h4>
             <ul className="space-y-3">{shopLinks.map((link) => (
-              <li key={link}><button onClick={() => onShopLinkClick(link)} className="text-muted-foreground hover:text-gold text-sm transition-colors cursor-pointer">{link}</button></li>
+              <li key={link}><button onClick={() => onShopLinkClick(link)} className="text-muted-foreground hover:text-pink text-sm transition-colors cursor-pointer">{link}</button></li>
             ))}</ul>
           </div>
           <div>
             <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Help</h4>
             <ul className="space-y-3">{helpLinks.map((link) => (
-              <li key={link}><button onClick={() => onHelpLinkClick(link)} className="text-muted-foreground hover:text-gold text-sm transition-colors cursor-pointer">{link}</button></li>
+              <li key={link}><button onClick={() => onHelpLinkClick(link)} className="text-muted-foreground hover:text-pink text-sm transition-colors cursor-pointer">{link}</button></li>
             ))}</ul>
           </div>
           <div>
@@ -1165,7 +1166,7 @@ function Footer({ onShopLinkClick, onHelpLinkClick, onLegalClick, socialUrls, si
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-muted-foreground">&copy; {new Date().getFullYear()} LACELLE HAIR. All rights reserved.</p>
           <div className="flex gap-6">{["Privacy Policy", "Terms of Service", "Cookie Policy"].map((link) => (
-            <button key={link} onClick={() => onLegalClick(link)} className="text-xs text-muted-foreground hover:text-gold transition-colors cursor-pointer">{link}</button>
+            <button key={link} onClick={() => onLegalClick(link)} className="text-xs text-muted-foreground hover:text-pink transition-colors cursor-pointer">{link}</button>
           ))}</div>
         </div>
       </div>
@@ -1195,7 +1196,7 @@ function WhatsAppButton({ whatsappNumber }: { whatsappNumber: string }) {
         onMouseLeave={() => setTooltip(false)}
         animate={{ scale: [1, 1.05, 1] }}
         transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-        className="flex items-center justify-center w-14 h-14 rounded-full bg-[#25D366] text-white shadow-lg shadow-[#25D366]/30 hover:shadow-xl hover:shadow-[#25D366]/40 transition-shadow"
+        className="flex items-center justify-center w-14 h-14 rounded-full bg-[#25D366] text-white shadow-lg shadow-[#25D366]/30 hover:shadow-xl hover:shadow-[#25D366]/40 transition-all ring-2 ring-pink/40 ring-offset-2 ring-offset-luxury-black"
       >
         <MessageCircle className="w-6 h-6" fill="white" />
       </motion.a>
@@ -1474,7 +1475,7 @@ export default function Home() {
       <AnimatePresence>
         {showBackToTop && (
           <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className="fixed bottom-6 right-6 z-50">
-            <Button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="w-12 h-12 rounded-full gold-gradient text-luxury-black shadow-lg shadow-gold/20 hover:opacity-90" size="icon"><ArrowUp className="w-5 h-5" /></Button>
+            <Button onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })} className="w-12 h-12 rounded-full pink-gradient text-white shadow-lg shadow-pink/20 hover:opacity-90" size="icon"><ArrowUp className="w-5 h-5" /></Button>
           </motion.div>
         )}
       </AnimatePresence>
