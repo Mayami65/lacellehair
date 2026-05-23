@@ -149,6 +149,29 @@ const TRUST_ITEMS = [
 
 /* ─────────── Helpers ─────────── */
 
+function useIsMobile(breakpoint = 768): boolean {
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < breakpoint);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, [breakpoint]);
+  return isMobile;
+}
+
+function usePrefersReducedMotion(): boolean {
+  const [prefersReduced, setPrefersReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReduced(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setPrefersReduced(e.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+  return prefersReduced;
+}
+
 function useLocalStorage<T>(key: string, initial: T): [T, (val: T | ((prev: T) => T)) => void] {
   const [value, setValue] = useState<T>(() => {
     try {
@@ -167,8 +190,9 @@ function useLocalStorage<T>(key: string, initial: T): [T, (val: T | ((prev: T) =
 function SectionHeading({ subtitle, title, description }: { subtitle: string; title: string; description?: string }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
+  const mobile = useIsMobile();
   return (
-    <motion.div ref={ref} initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.7 }} className="text-center mb-12 md:mb-16">
+    <motion.div ref={ref} initial={mobile ? false : { opacity: 0, y: 30 }} animate={isInView || mobile ? { opacity: 1, y: 0 } : {}} transition={{ duration: mobile ? 0.2 : 0.7 }} className="text-center mb-12 md:mb-16">
       <span className="text-sm tracking-[0.3em] uppercase text-gold font-medium">{subtitle}</span>
       <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mt-3 mb-4 text-white">{title}</h2>
       {description && <p className="text-muted-foreground max-w-2xl mx-auto text-base md:text-lg leading-relaxed">{description}</p>}
@@ -399,7 +423,9 @@ function Navbar({ cartCount, onCartOpen, onSearchOpen, wishlistCount, onWishlist
 /* ─────────── Hero Section ─────────── */
 
 function HeroSection() {
+  const mobile = useIsMobile();
   const slides = [{ image: "/images/hero.jpg", headline: "Unleash Your", highlight: "Inner Royalty", subtext: "Premium Raw Indian Hair Extensions — Sourced for Excellence, Crafted for Perfection", cta: "Shop Collection", ctaLink: "#products" }];
+  const d = mobile ? 0 : 0.2;
   return (
     <section className="relative min-h-[90vh] md:min-h-screen flex items-center overflow-hidden">
       <div className="absolute inset-0">
@@ -411,16 +437,16 @@ function HeroSection() {
         <div className="absolute top-1/2 right-1/3 w-64 h-64 bg-gold/10 rounded-full blur-[80px]" />
       </div>
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <motion.div initial={{ opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.8, delay: 0.2 }} className="max-w-2xl">
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-6">
+        <motion.div initial={mobile ? false : { opacity: 0, x: -50 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: mobile ? 0.1 : 0.8, delay: d }} className="max-w-2xl">
+          <motion.div initial={mobile ? false : { opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: d + (mobile ? 0 : 0.2) }} className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-4 py-2 mb-6">
             <Gem className="w-4 h-4 text-gold" />
             <span className="text-xs sm:text-sm text-white/90 tracking-wide">Premium Quality Since 2020</span>
           </motion.div>
-          <motion.h1 initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6, duration: 0.6 }} className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-4" style={{ fontFamily: "var(--font-display)" }}>
+          <motion.h1 initial={mobile ? false : { opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: d + (mobile ? 0 : 0.4), duration: mobile ? 0.1 : 0.6 }} className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-4" style={{ fontFamily: "var(--font-display)" }}>
             {slides[0].headline}<br /><span className="gold-shimmer">{slides[0].highlight}</span>
           </motion.h1>
-          <motion.p initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.8 }} className="text-base sm:text-lg text-white/70 mb-8 max-w-lg leading-relaxed">{slides[0].subtext}</motion.p>
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 1 }} className="flex flex-wrap gap-4">
+          <motion.p initial={mobile ? false : { opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: d + (mobile ? 0 : 0.6) }} className="text-base sm:text-lg text-white/70 mb-8 max-w-lg leading-relaxed">{slides[0].subtext}</motion.p>
+          <motion.div initial={mobile ? false : { opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: d + (mobile ? 0 : 0.8) }} className="flex flex-wrap gap-4">
             <a href={slides[0].ctaLink} onClick={(e) => { e.preventDefault(); document.querySelector(slides[0].ctaLink)?.scrollIntoView({ behavior: "smooth" }); }}>
               <Button size="lg" className="gold-gradient text-luxury-black font-semibold px-8 py-6 text-sm sm:text-base rounded-full hover:opacity-90 transition-all shadow-lg shadow-gold/20 hover:shadow-gold/40">{slides[0].cta}<ChevronRight className="w-4 h-4 ml-1" /></Button>
             </a>
@@ -428,14 +454,14 @@ function HeroSection() {
               <Button size="lg" variant="outline" className="border-pink/40 text-pink-light hover:bg-pink/10 hover:border-pink px-8 py-6 text-sm sm:text-base rounded-full transition-all">Browse Collections</Button>
             </a>
           </motion.div>
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }} className="flex flex-wrap gap-8 mt-12 pt-8 border-t border-white/10">
+          <motion.div initial={mobile ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: d + (mobile ? 0 : 1) }} className="flex flex-wrap gap-8 mt-12 pt-8 border-t border-white/10">
             {[{ value: "10K+", label: "Happy Customers" }, { value: "100%", label: "Raw Virgin Hair" }, { value: "4.9", label: "Average Rating" }].map((stat) => (
               <div key={stat.label}><div className="text-2xl sm:text-3xl font-bold text-gold">{stat.value}</div><div className="text-xs sm:text-sm text-white/50 mt-1">{stat.label}</div></div>
             ))}
           </motion.div>
         </motion.div>
       </div>
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.5 }} className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
+      <motion.div initial={mobile ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: d + (mobile ? 0 : 1.2) }} className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2">
         <span className="text-white/40 text-xs tracking-widest uppercase">Scroll</span>
         <motion.div animate={{ y: [0, 8, 0] }} transition={{ duration: 1.5, repeat: Infinity }}><ChevronDown className="w-5 h-5 text-gold" /></motion.div>
       </motion.div>
@@ -448,13 +474,14 @@ function HeroSection() {
 function CategoriesSection({ onCategoryClick }: { onCategoryClick: (category: string) => void }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const mobile = useIsMobile();
   return (
     <section id="categories" className="py-20 md:py-28 bg-luxury-black">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeading subtitle="Collections" title="Shop by Category" description="Explore our curated collections of premium hair extensions and accessories, designed to help you achieve your perfect look" />
         <div ref={ref} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
           {CATEGORIES.map((cat, i) => (
-            <motion.div key={cat.name} initial={{ opacity: 0, y: 40 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5, delay: i * 0.15 }} className="group relative cursor-pointer" onClick={() => onCategoryClick(cat.name)}>
+            <motion.div key={cat.name} initial={mobile ? false : { opacity: 0, y: 40 }} animate={isInView || mobile ? { opacity: 1, y: 0 } : {}} transition={{ duration: mobile ? 0.15 : 0.5, delay: mobile ? 0 : i * 0.15 }} className="group relative cursor-pointer" onClick={() => onCategoryClick(cat.name)}>
               <div className="relative aspect-[3/4] rounded-2xl overflow-hidden">
                 <img src={cat.image} alt={cat.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-gradient-to-t from-luxury-black via-luxury-black/40 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
@@ -487,24 +514,25 @@ function StockBadge({ stock, lowThreshold }: { stock: number; lowThreshold: numb
 function ProductCard({ product, onAddToCart, onClick, isWishlisted, onToggleWishlist }: { product: ProductType; onAddToCart: (p: ProductType) => void; onClick: (p: ProductType) => void; isWishlisted: boolean; onToggleWishlist: (id: string) => void }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });
+  const mobile = useIsMobile();
 
   return (
-    <motion.div ref={ref} initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5 }} className="group">
+    <motion.div ref={ref} initial={mobile ? false : { opacity: 0, y: 30 }} animate={isInView || mobile ? { opacity: 1, y: 0 } : {}} transition={{ duration: mobile ? 0.1 : 0.5 }} className="group">
       <div className="relative bg-luxury-dark rounded-2xl overflow-hidden border border-luxury-border hover:border-pink/30 transition-all duration-500 hover:shadow-xl hover:shadow-pink/5 cursor-pointer" onClick={() => onClick(product)}>
         <div className="relative aspect-square overflow-hidden">
-          <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
-          <div className="absolute inset-0 bg-luxury-black/0 group-hover:bg-luxury-black/20 transition-colors duration-500" />
+          <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 sm:group-hover:scale-105" />
+          <div className="absolute inset-0 bg-luxury-black/0 sm:group-hover:bg-luxury-black/20 transition-colors duration-500 bg-gradient-to-t from-luxury-black/40 via-transparent to-transparent sm:from-transparent" />
           <div className="absolute top-3 left-3 flex flex-col gap-2">
             <Badge className="bg-gold text-luxury-black text-[10px] font-bold px-2.5 py-1 border-0">{product.badge}</Badge>
             <StockBadge stock={product.stock} lowThreshold={product.lowStockThreshold} />
           </div>
-          <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
-            <Button size="icon" variant="secondary" className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm border-white/20 hover:bg-pink hover:border-pink text-white hover:text-white" onClick={(e) => { e.stopPropagation(); onToggleWishlist(product.id); }}>
+          <div className="absolute top-3 right-3 flex flex-col gap-2 sm:opacity-0 sm:group-hover:opacity-100 sm:translate-x-2 sm:group-hover:translate-x-0 transition-all duration-300 opacity-100 translate-x-0">
+            <Button size="icon" variant="secondary" className="w-10 h-10 rounded-full bg-white/10 backdrop-blur-sm border-white/20 hover:bg-pink hover:border-pink text-white hover:text-white" onClick={(e) => { e.stopPropagation(); onToggleWishlist(product.id); }}>
               <Heart className={`w-4 h-4 ${isWishlisted ? "fill-pink text-pink" : ""}`} />
             </Button>
           </div>
-          <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
-            <Button onClick={(e) => { e.stopPropagation(); onAddToCart(product); }} className="w-full gold-gradient text-luxury-black font-semibold rounded-full py-5 text-sm shadow-lg shadow-gold/20 hover:opacity-90">
+          <div className="absolute bottom-3 left-3 right-3 sm:opacity-0 sm:group-hover:opacity-100 sm:translate-y-2 sm:group-hover:translate-y-0 transition-all duration-300 opacity-100 translate-y-0">
+            <Button onClick={(e) => { e.stopPropagation(); onAddToCart(product); }} className="w-full gold-gradient text-luxury-black font-semibold rounded-full py-4 sm:py-5 text-sm shadow-lg shadow-gold/20 hover:opacity-90">
               <ShoppingBag className="w-4 h-4 mr-2" />Quick Add
             </Button>
           </div>
@@ -574,6 +602,7 @@ function ProductsSection({ products, onAddToCart, onProductClick, initialFilter,
 function AboutSection() {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const mobile = useIsMobile();
   return (
     <section id="about" className="py-20 md:py-28 bg-luxury-black relative overflow-hidden">
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-pink/8 rounded-full blur-[150px]" />
@@ -582,14 +611,14 @@ function AboutSection() {
         <SectionHeading subtitle="Our Promise" title="Why Choose LACELLE HAIR" description="We believe every woman deserves to feel confident and beautiful. Our mission is to provide the highest quality hair at accessible prices" />
         <div ref={ref} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {TRUST_ITEMS.map((item, i) => (
-            <motion.div key={item.title} initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5, delay: i * 0.1 }} className={`group p-6 md:p-8 rounded-2xl border border-luxury-border bg-luxury-dark/50 hover:bg-luxury-dark transition-all duration-500 hover:shadow-lg ${i % 2 === 0 ? 'hover:border-pink/30 hover:shadow-pink/5' : 'hover:border-gold/30 hover:shadow-gold/5'}`}>
+            <motion.div key={item.title} initial={mobile ? false : { opacity: 0, y: 30 }} animate={isInView || mobile ? { opacity: 1, y: 0 } : {}} transition={{ duration: mobile ? 0.15 : 0.5, delay: mobile ? 0 : i * 0.1 }} className={`group p-6 md:p-8 rounded-2xl border border-luxury-border bg-luxury-dark/50 hover:bg-luxury-dark transition-all duration-500 hover:shadow-lg ${i % 2 === 0 ? 'hover:border-pink/30 hover:shadow-pink/5' : 'hover:border-gold/30 hover:shadow-gold/5'}`}>
               <div className={`w-14 h-14 rounded-xl ${i % 2 === 0 ? 'pink-gradient' : 'gold-gradient'} flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300`}><item.icon className="w-7 h-7 text-white" /></div>
               <h3 className="text-lg font-bold text-white mb-3" style={{ fontFamily: "var(--font-display)" }}>{item.title}</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">{item.description}</p>
             </motion.div>
           ))}
         </div>
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6, delay: 0.5 }} className="mt-16 p-8 md:p-12 rounded-2xl border border-luxury-border bg-gradient-to-r from-luxury-dark via-luxury-gray/30 to-luxury-dark relative overflow-hidden">
+        <motion.div initial={mobile ? false : { opacity: 0, y: 30 }} animate={isInView || mobile ? { opacity: 1, y: 0 } : {}} transition={{ duration: mobile ? 0.15 : 0.6, delay: mobile ? 0 : 0.5 }} className="mt-16 p-8 md:p-12 rounded-2xl border border-luxury-border bg-gradient-to-r from-luxury-dark via-luxury-gray/30 to-luxury-dark relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-pink/5 rounded-full blur-[80px]" />
           <div className="absolute bottom-0 left-0 w-64 h-64 bg-gold/5 rounded-full blur-[80px]" />
           <div className="relative flex flex-col md:flex-row items-center gap-8">
@@ -614,6 +643,7 @@ function AboutSection() {
 function TestimonialsSection({ onWriteReview }: { onWriteReview: () => void }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
+  const mobile = useIsMobile();
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
@@ -628,7 +658,7 @@ function TestimonialsSection({ onWriteReview }: { onWriteReview: () => void }) {
         <SectionHeading subtitle="Testimonials" title="What Our Queens Say" description="Don't just take our word for it — hear from our amazing customers who have transformed their look with LACELLE HAIR" />
         <div ref={ref} className="max-w-4xl mx-auto">
           <AnimatePresence mode="wait">
-            <motion.div key={activeIndex} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.5 }} className="bg-luxury-dark border border-luxury-border rounded-2xl p-8 md:p-12 text-center relative">
+            <motion.div key={activeIndex} initial={mobile ? false : { opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={mobile ? {} : { opacity: 0, y: -20 }} transition={{ duration: mobile ? 0.15 : 0.5 }} className="bg-luxury-dark border border-luxury-border rounded-2xl p-6 sm:p-8 md:p-12 text-center relative">
               <div className="absolute top-4 left-6 text-gold/20 text-7xl font-serif leading-none">&ldquo;</div>
               <div className="flex justify-center gap-1 mb-6">
                 {Array.from({ length: TESTIMONIALS[activeIndex].rating }).map((_, i) => <Star key={i} className="w-5 h-5 text-gold fill-gold" />)}
@@ -669,6 +699,7 @@ function StarRating({ rating, interactive, onChange }: { rating: number; interac
 function CustomerReviewsSection({ products, onWriteReview }: { products: ProductType[]; onWriteReview: (productId?: string) => void }) {
   const [reviews, setReviews] = useState<ReviewType[]>([]);
   const [loading, setLoading] = useState(true);
+  const mobile = useIsMobile();
 
   useEffect(() => {
     fetch("/api/reviews?limit=10")
@@ -696,7 +727,7 @@ function CustomerReviewsSection({ products, onWriteReview }: { products: Product
         <SectionHeading subtitle="Reviews" title="Customer Reviews" description="Real reviews from our amazing customers" />
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {reviews.map((review) => (
-            <motion.div key={review.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="bg-luxury-dark border border-luxury-border rounded-2xl p-6">
+            <motion.div key={review.id} initial={mobile ? false : { opacity: 0, y: 20 }} whileInView={mobile ? {} : { opacity: 1, y: 0 }} viewport={{ once: true }} className="bg-luxury-dark border border-luxury-border rounded-2xl p-6">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold to-pink flex items-center justify-center text-luxury-black font-bold text-sm">{review.author.charAt(0).toUpperCase()}</div>
@@ -928,6 +959,7 @@ function ProductDetailModal({ product, open, onOpenChange, onAddToCart, onWriteR
 
 function NewsletterSection() {
   const [email, setEmail] = useState("");
+  const mobile = useIsMobile();
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (email) {
@@ -940,7 +972,7 @@ function NewsletterSection() {
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-pink/10 rounded-full blur-[200px]" />
       <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-gold/5 rounded-full blur-[150px]" />
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative">
-        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.6 }}>
+        <motion.div initial={mobile ? false : { opacity: 0, y: 30 }} whileInView={mobile ? {} : { opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: mobile ? 0.15 : 0.6 }}>
           <div className="inline-flex items-center gap-2 text-pink text-sm mb-4"><Mail className="w-4 h-4" /><span className="tracking-wide uppercase">Join the Club</span></div>
           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4" style={{ fontFamily: "var(--font-display)" }}>Get <span className="pink-shimmer">15% Off</span> Your First Order</h2>
           <p className="text-muted-foreground mb-8 max-w-lg mx-auto">Subscribe to our newsletter for exclusive deals, early access to new arrivals, hair care tips, and VIP-only promotions</p>
@@ -1178,6 +1210,7 @@ function Footer({ onShopLinkClick, onHelpLinkClick, onLegalClick, socialUrls, si
 
 function WhatsAppButton({ whatsappNumber }: { whatsappNumber: string }) {
   const [tooltip, setTooltip] = useState(false);
+  const mobile = useIsMobile();
   return (
     <div className="fixed bottom-6 left-6 z-40 group">
       <AnimatePresence>
@@ -1194,8 +1227,8 @@ function WhatsAppButton({ whatsappNumber }: { whatsappNumber: string }) {
         rel="noopener noreferrer"
         onMouseEnter={() => setTooltip(true)}
         onMouseLeave={() => setTooltip(false)}
-        animate={{ scale: [1, 1.05, 1] }}
-        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        animate={mobile ? {} : { scale: [1, 1.05, 1] }}
+        transition={mobile ? {} : { duration: 2, repeat: Infinity, ease: "easeInOut" }}
         className="flex items-center justify-center w-14 h-14 rounded-full bg-[#25D366] text-white shadow-lg shadow-[#25D366]/30 hover:shadow-xl hover:shadow-[#25D366]/40 transition-all ring-2 ring-pink/40 ring-offset-2 ring-offset-luxury-black"
       >
         <MessageCircle className="w-6 h-6" fill="white" />

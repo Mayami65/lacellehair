@@ -175,3 +175,35 @@ Stage Summary:
 - Pink is now prominently featured across all sections while maintaining the gold/black/pink brand balance
 - Key pink elements: announcement bar, logo shimmer, nav hover, hero glow, section dividers, product hovers, alternating trust icons, newsletter CTA, contact form, footer, WhatsApp ring, back-to-top, admin panel
 
+---
+Task ID: 2
+Agent: Main Agent
+Task: Make all animations mobile-supportive (primary users are on mobile)
+
+Work Log:
+- Added `useIsMobile()` and `usePrefersReducedMotion()` custom hooks to page.tsx
+- Added `@media (prefers-reduced-motion: reduce)` query in globals.css to disable all CSS animations/transitions for users with motion sensitivity
+- Added `@media (max-width: 768px)` query to disable gold-shimmer and pink-shimmer (heavy GPU), pink-glow pulse, float animation, and product image zoom on mobile
+- Added `@media (hover: none) and (pointer: coarse)` to disable hover-zoom on touch devices
+- Fixed product cards: wishlist heart button now always visible on mobile (was hover-only), with 10x10 (40px) touch target
+- Fixed product cards: Quick Add button now always visible on mobile with bottom gradient overlay for readability
+- Product image hover-zoom now uses `sm:group-hover:scale-105` (disabled on mobile)
+- Updated SectionHeading: skips fade-in animation on mobile (instant render)
+- Updated HeroSection: reduced all delays to 0 on mobile, skip animations entirely
+- Updated CategoriesSection: skip staggered animation on mobile
+- Updated ProductCard: skip scroll animation on mobile
+- Updated AboutSection: skip staggered animation on mobile, trust items animate instantly
+- Updated TestimonialsSection: skip slide transitions on mobile, reduced padding
+- Updated CustomerReviewsSection: skip card animations on mobile
+- Updated NewsletterSection: skip fade-in on mobile
+- Updated WhatsAppButton: disabled infinite pulse scale animation on mobile
+- Build compiles with zero errors
+
+Stage Summary:
+- All hover-dependent UI elements now visible on touch devices
+- All Framer Motion animations are lightweight/no-op on mobile
+- CSS animations (shimmer, glow, float) disabled on mobile for GPU performance
+- `prefers-reduced-motion` fully respected
+- Touch targets meet minimum 40px+ size
+- Mobile users see instant content, no jank or delayed renders
+

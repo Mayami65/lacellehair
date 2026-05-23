@@ -277,3 +277,68 @@
   background-color: rgba(232, 67, 147, 0.3);
   color: #F5F5F5;
 }
+
+/* ═══════════════════════════════════════════
+   Mobile-First Animation Optimizations
+   ═══════════════════════════════════════════ */
+
+/* Respect user's reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .gold-shimmer,
+  .pink-shimmer {
+    animation: none;
+    -webkit-text-fill-color: #D4A843;
+  }
+  .pink-shimmer {
+    -webkit-text-fill-color: #E84393;
+  }
+  .pink-glow {
+    animation: none;
+  }
+  .animate-float {
+    animation: none;
+  }
+}
+
+/* Mobile: tone down heavy animations for performance */
+@media (max-width: 768px) {
+  /* Disable shimmer on mobile (heavy on GPU) */
+  .gold-shimmer {
+    animation: none;
+    -webkit-text-fill-color: #D4A843;
+  }
+  .pink-shimmer {
+    animation: none;
+    -webkit-text-fill-color: #E84393;
+  }
+
+  /* Reduce pink glow pulse on mobile */
+  .pink-glow {
+    animation: none;
+    box-shadow: 0 0 8px rgba(232, 67, 147, 0.4);
+  }
+
+  /* Disable float on mobile */
+  .animate-float {
+    animation: none;
+  }
+
+  /* Simpler image hover on touch devices - no zoom */
+  .product-image-hover:hover img {
+    transform: none;
+  }
+}
+
+/* Touch device detection: show tap targets, disable hover-only reveals */
+@media (hover: none) and (pointer: coarse) {
+  /* Disable hover zoom on product images for touch */
+  .group:hover img {
+    transform: none !important;
+  }
+}
