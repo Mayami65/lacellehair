@@ -28,6 +28,8 @@ import {
   Send,
   Package,
   Clock,
+  Phone,
+  MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -145,6 +147,21 @@ const TRUST_ITEMS = [
   { icon: Sparkles, title: "Long-Lasting Quality", description: "With proper care, our premium hair extensions can last 12-24 months. Each bundle is carefully selected and inspected to meet our rigorous quality standards." },
 ];
 
+/* ─────────── Helpers ─────────── */
+
+function useLocalStorage<T>(key: string, initial: T): [T, (val: T | ((prev: T) => T)) => void] {
+  const [value, setValue] = useState<T>(() => {
+    try {
+      const item = window.localStorage.getItem(key);
+      return item ? JSON.parse(item) : initial;
+    } catch { return initial; }
+  });
+  useEffect(() => {
+    try { window.localStorage.setItem(key, JSON.stringify(value)); } catch {}
+  }, [key, value]);
+  return [value, setValue];
+}
+
 /* ─────────── Components ─────────── */
 
 function SectionHeading({ subtitle, title, description }: { subtitle: string; title: string; description?: string }) {
@@ -160,7 +177,141 @@ function SectionHeading({ subtitle, title, description }: { subtitle: string; ti
   );
 }
 
-function Navbar({ cartCount, onCartOpen }: { cartCount: number; onCartOpen: () => void }) {
+/* ─────────── Search Overlay ─────────── */
+
+function SearchOverlay({ open, onOpenChange, products, onProductClick }: { open: boolean; onOpenChange: (o: boolean) => void; products: ProductType[]; onProductClick: (p: ProductType) => void }) {
+  const [query, setQuery] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) { const timer = setTimeout(() => { setQuery(""); inputRef.current?.focus(); }, 0); return () => clearTimeout(timer); }
+  }, [open]);
+
+  const results = query.trim().length > 0
+    ? products.filter((p) => p.name.toLowerCase().includes(query.toLowerCase()))
+    : [];
+
+  const handleSelect = (product: ProductType) => {
+    onOpenChange(false);
+    onProductClick(product);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-luxury-dark border-luxury-border max-w-2xl p-0 gap-0 overflow-hidden">
+        <div className="flex items-center gap-3 p-4 border-b border-luxury-border">
+          <Search className="w-5 h-5 text-gold flex-shrink-0" />
+          <input
+            ref={inputRef}
+            type="text"
+            placeholder="Search products..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="flex-1 bg-transparent text-white text-lg outline-none placeholder:text-white/30"
+            onKeyDown={(e) => { if (e.key === "Escape") onOpenChange(false); }}
+          />
+          {query && (
+            <Button variant="ghost" size="icon" className="text-white/60 hover:text-white h-8 w-8" onClick={() => setQuery("")}>
+              <X className="w-4 h-4" />
+            </Button>
+          )}
+        </div>
+        <div className="max-h-96 overflow-y-auto">
+          {query.trim().length > 0 && results.length === 0 && (
+            <div className="p-8 text-center">
+              <Search className="w-10 h-10 text-luxury-border mx-auto mb-3" />
+              <p className="text-muted-foreground">No results found for &ldquo;{query}&rdquo;</p>
+              <p className="text-xs text-muted-foreground/60 mt-1">Try searching for a different product name</p>
+            </div>
+          )}
+          {results.map((product) => (
+            <button
+              key={product.id}
+              onClick={() => handleSelect(product)}
+              className="w-full flex items-center gap-4 p-4 hover:bg-luxury-gray/50 transition-colors border-b border-luxury-border/50 last:border-0 text-left"
+            >
+              <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-luxury-gray">
+                <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-white truncate">{product.name}</p>
+                <p className="text-xs text-muted-foreground">{product.category}</p>
+              </div>
+              <div className="text-right flex-shrink-0">
+                <span className="text-gold font-bold text-sm">${product.price}</span>
+                {product.originalPrice && <span className="text-xs text-muted-foreground line-through ml-1">${product.originalPrice}</span>}
+              </div>
+              <ChevronRight className="w-4 h-4 text-luxury-border flex-shrink-0" />
+            </button>
+          ))}
+          {query.trim().length === 0 && (
+            <div className="p-8 text-center">
+              <p className="text-muted-foreground text-sm">Start typing to search products...</p>
+              <div className="flex flex-wrap justify-center gap-2 mt-4">
+                {["Bundles", "Frontals", "Closures", "Wigs"].map((cat) => (
+                  <Badge key={cat} variant="outline" className="border-luxury-border text-muted-foreground cursor-default">{cat}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ─────────── Wishlist Drawer ─────────── */
+
+function WishlistDrawer({ open, onOpenChange, wishlistIds, products, onRemoveFromWishlist, onAddToCart }: { open: boolean; onOpenChange: (o: boolean) => void; wishlistIds: string[]; products: ProductType[]; onRemoveFromWishlist: (id: string) => void; onAddToCart: (p: ProductType) => void }) {
+  const wishlistProducts = products.filter((p) => wishlistIds.includes(p.id));
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-md bg-luxury-dark border-luxury-border text-white">
+        <div className="flex flex-col h-full">
+          <SheetHeader className="pb-4">
+            <SheetTitle className="text-xl font-bold text-white flex items-center gap-2">
+              <Heart className="w-5 h-5 text-pink" />Wishlist
+              {wishlistProducts.length > 0 && <Badge className="bg-pink text-white border-0 text-xs">{wishlistProducts.length} items</Badge>}
+            </SheetTitle>
+          </SheetHeader>
+          {wishlistProducts.length === 0 ? (
+            <div className="flex-1 flex flex-col items-center justify-center text-center">
+              <Heart className="w-16 h-16 text-luxury-border mb-4" />
+              <p className="text-muted-foreground mb-2">Your wishlist is empty</p>
+              <p className="text-xs text-muted-foreground/60">Save your favorite items for later</p>
+            </div>
+          ) : (
+            <>
+              <div className="flex-1 overflow-y-auto space-y-4 -mx-6 px-6 py-4">
+                {wishlistProducts.map((product) => (
+                  <div key={product.id} className="flex gap-4 p-3 bg-luxury-gray/50 rounded-xl border border-luxury-border">
+                    <div className="w-20 h-20 rounded-lg overflow-hidden flex-shrink-0"><img src={product.image} alt={product.name} className="w-full h-full object-cover" /></div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-sm font-semibold text-white truncate">{product.name}</h4>
+                      <p className="text-gold text-sm font-bold mt-1">${product.price}</p>
+                      <div className="flex gap-2 mt-2">
+                        <Button size="sm" onClick={() => { onAddToCart(product); toast.success(`${product.name} added to cart!`); }} className="gold-gradient text-luxury-black font-semibold text-xs rounded-full px-3 py-1 hover:opacity-90">Add to Cart</Button>
+                        <Button size="sm" variant="ghost" onClick={() => onRemoveFromWishlist(product.id)} className="text-muted-foreground hover:text-pink text-xs px-2">Remove</Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="border-t border-luxury-border pt-4">
+                <Button variant="link" className="w-full text-muted-foreground text-sm hover:text-gold" onClick={() => onOpenChange(false)}>Continue Shopping</Button>
+              </div>
+            </>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+/* ─────────── Navbar ─────────── */
+
+function Navbar({ cartCount, onCartOpen, onSearchOpen, wishlistCount, onWishlistOpen }: { cartCount: number; onCartOpen: () => void; onSearchOpen: () => void; wishlistCount: number; onWishlistOpen: () => void }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -210,8 +361,11 @@ function Navbar({ cartCount, onCartOpen }: { cartCount: number; onCartOpen: () =
               ))}
             </div>
             <div className="flex items-center gap-2 md:gap-3">
-              <Button variant="ghost" size="icon" className="text-white/80 hover:text-gold transition-colors"><Search className="w-5 h-5" /></Button>
-              <Button variant="ghost" size="icon" className="text-white/80 hover:text-pink transition-colors hidden sm:flex"><Heart className="w-5 h-5" /></Button>
+              <Button variant="ghost" size="icon" className="text-white/80 hover:text-gold transition-colors" onClick={onSearchOpen}><Search className="w-5 h-5" /></Button>
+              <Button variant="ghost" size="icon" className="text-white/80 hover:text-pink transition-colors relative hidden sm:flex" onClick={onWishlistOpen}>
+                <Heart className="w-5 h-5" />
+                {wishlistCount > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-pink text-white text-[10px] font-bold flex items-center justify-center pink-glow">{wishlistCount}</span>}
+              </Button>
               <Button variant="ghost" size="icon" className="text-white/80 hover:text-gold transition-colors relative" onClick={onCartOpen}>
                 <ShoppingBag className="w-5 h-5" />
                 {cartCount > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-pink text-white text-[10px] font-bold flex items-center justify-center pink-glow">{cartCount}</span>}
@@ -226,6 +380,13 @@ function Navbar({ cartCount, onCartOpen }: { cartCount: number; onCartOpen: () =
                 {NAV_LINKS.map((link) => (
                   <a key={link.label} href={link.href} onClick={(e) => { e.preventDefault(); handleNavClick(link.href); }} className="block py-3 px-4 text-white/80 hover:text-gold hover:bg-luxury-gray/50 rounded-lg transition-all text-sm uppercase tracking-wider">{link.label}</a>
                 ))}
+                <div className="flex items-center gap-3 pt-2 border-t border-luxury-border mt-2">
+                  <Button variant="ghost" size="icon" className="text-white/80 hover:text-gold" onClick={() => { onSearchOpen(); setMobileOpen(false); }}><Search className="w-5 h-5" /></Button>
+                  <Button variant="ghost" size="icon" className="text-white/80 hover:text-pink relative" onClick={() => { onWishlistOpen(); setMobileOpen(false); }}>
+                    <Heart className="w-5 h-5" />
+                    {wishlistCount > 0 && <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-pink text-white text-[10px] font-bold flex items-center justify-center">{wishlistCount}</span>}
+                  </Button>
+                </div>
               </div>
             </motion.div>
           )}
@@ -234,6 +395,8 @@ function Navbar({ cartCount, onCartOpen }: { cartCount: number; onCartOpen: () =
     </>
   );
 }
+
+/* ─────────── Hero Section ─────────── */
 
 function HeroSection() {
   const slides = [{ image: "/images/hero.jpg", headline: "Unleash Your", highlight: "Inner Royalty", subtext: "Premium Raw Indian Hair Extensions — Sourced for Excellence, Crafted for Perfection", cta: "Shop Collection", ctaLink: "#products" }];
@@ -279,7 +442,9 @@ function HeroSection() {
   );
 }
 
-function CategoriesSection() {
+/* ─────────── Categories Section ─────────── */
+
+function CategoriesSection({ onCategoryClick }: { onCategoryClick: (category: string) => void }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   return (
@@ -288,7 +453,7 @@ function CategoriesSection() {
         <SectionHeading subtitle="Collections" title="Shop by Category" description="Explore our curated collections of premium hair extensions and accessories, designed to help you achieve your perfect look" />
         <div ref={ref} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6">
           {CATEGORIES.map((cat, i) => (
-            <motion.div key={cat.name} initial={{ opacity: 0, y: 40 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5, delay: i * 0.15 }} className="group relative cursor-pointer">
+            <motion.div key={cat.name} initial={{ opacity: 0, y: 40 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5, delay: i * 0.15 }} className="group relative cursor-pointer" onClick={() => onCategoryClick(cat.name)}>
               <div className="relative aspect-[3/4] rounded-2xl overflow-hidden">
                 <img src={cat.image} alt={cat.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
                 <div className="absolute inset-0 bg-gradient-to-t from-luxury-black via-luxury-black/40 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
@@ -308,16 +473,19 @@ function CategoriesSection() {
   );
 }
 
+/* ─────────── Stock Badge ─────────── */
+
 function StockBadge({ stock, lowThreshold }: { stock: number; lowThreshold: number }) {
   if (stock <= 0) return <Badge className="bg-red-600 text-white text-[10px] px-2 py-0.5 border-0">Out of Stock</Badge>;
   if (stock <= lowThreshold) return <Badge className="bg-orange-500 text-white text-[10px] px-2 py-0.5 border-0">Low Stock ({stock})</Badge>;
   return null;
 }
 
-function ProductCard({ product, onAddToCart, onClick }: { product: ProductType; onAddToCart: (p: ProductType) => void; onClick: (p: ProductType) => void }) {
+/* ─────────── Product Card ─────────── */
+
+function ProductCard({ product, onAddToCart, onClick, isWishlisted, onToggleWishlist }: { product: ProductType; onAddToCart: (p: ProductType) => void; onClick: (p: ProductType) => void; isWishlisted: boolean; onToggleWishlist: (id: string) => void }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });
-  const [liked, setLiked] = useState(false);
 
   return (
     <motion.div ref={ref} initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.5 }} className="group">
@@ -330,8 +498,8 @@ function ProductCard({ product, onAddToCart, onClick }: { product: ProductType; 
             <StockBadge stock={product.stock} lowThreshold={product.lowStockThreshold} />
           </div>
           <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 translate-x-2 group-hover:translate-x-0 transition-all duration-300">
-            <Button size="icon" variant="secondary" className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm border-white/20 hover:bg-pink hover:border-pink text-white hover:text-white" onClick={(e) => { e.stopPropagation(); setLiked(!liked); }}>
-              <Heart className={`w-4 h-4 ${liked ? "fill-pink text-pink" : ""}`} />
+            <Button size="icon" variant="secondary" className="w-9 h-9 rounded-full bg-white/10 backdrop-blur-sm border-white/20 hover:bg-pink hover:border-pink text-white hover:text-white" onClick={(e) => { e.stopPropagation(); onToggleWishlist(product.id); }}>
+              <Heart className={`w-4 h-4 ${isWishlisted ? "fill-pink text-pink" : ""}`} />
             </Button>
           </div>
           <div className="absolute bottom-3 left-3 right-3 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300">
@@ -358,13 +526,28 @@ function ProductCard({ product, onAddToCart, onClick }: { product: ProductType; 
   );
 }
 
-function ProductsSection({ products, onAddToCart, onProductClick }: { products: ProductType[]; onAddToCart: (p: ProductType) => void; onProductClick: (p: ProductType) => void }) {
+/* ─────────── Products Section ─────────── */
+
+function ProductsSection({ products, onAddToCart, onProductClick, initialFilter, wishlistIds, onToggleWishlist }: { products: ProductType[]; onAddToCart: (p: ProductType) => void; onProductClick: (p: ProductType) => void; initialFilter: string | null; wishlistIds: string[]; onToggleWishlist: (id: string) => void }) {
   const [activeFilter, setActiveFilter] = useState("All");
   const filters = ["All", "Bundles", "Frontals", "Closures", "Wigs"];
+  const sectionRef = useRef<HTMLDivElement>(null);
+
+  // Sync with initialFilter from parent
+  useEffect(() => {
+    if (initialFilter) {
+      const timer = setTimeout(() => {
+        setActiveFilter(initialFilter);
+        sectionRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [initialFilter]);
+
   const filtered = activeFilter === "All" ? products : products.filter((p) => p.category === activeFilter);
 
   return (
-    <section id="products" className="py-20 md:py-28 luxury-gradient">
+    <section id="products" ref={sectionRef} className="py-20 md:py-28 luxury-gradient scroll-mt-20">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <SectionHeading subtitle="Our Collection" title="Featured Products" description="Each bundle is hand-selected and quality-tested to ensure you receive only the finest premium hair extensions" />
         <div className="flex flex-wrap justify-center gap-2 mb-10">
@@ -374,16 +557,18 @@ function ProductsSection({ products, onAddToCart, onProductClick }: { products: 
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
           {filtered.map((product) => (
-            <ProductCard key={product.id} product={product} onAddToCart={onAddToCart} onClick={onProductClick} />
+            <ProductCard key={product.id} product={product} onAddToCart={onAddToCart} onClick={onProductClick} isWishlisted={wishlistIds.includes(product.id)} onToggleWishlist={onToggleWishlist} />
           ))}
         </div>
         <div className="text-center mt-12">
-          <Button variant="outline" className="border-gold/50 text-gold hover:bg-gold hover:text-luxury-black rounded-full px-10 py-6 text-sm transition-all">View All Products<ChevronRight className="w-4 h-4 ml-2" /></Button>
+          <Button variant="outline" onClick={() => setActiveFilter("All")} className="border-gold/50 text-gold hover:bg-gold hover:text-luxury-black rounded-full px-10 py-6 text-sm transition-all">View All Products<ChevronRight className="w-4 h-4 ml-2" /></Button>
         </div>
       </div>
     </section>
   );
 }
+
+/* ─────────── About Section ─────────── */
 
 function AboutSection() {
   const ref = useRef(null);
@@ -422,6 +607,8 @@ function AboutSection() {
     </section>
   );
 }
+
+/* ─────────── Testimonials Section ─────────── */
 
 function TestimonialsSection({ onWriteReview }: { onWriteReview: () => void }) {
   const ref = useRef(null);
@@ -541,7 +728,9 @@ function WriteReviewDialog({ open, onOpenChange, products, preselectedProductId 
 
   useEffect(() => {
     if (open && !prevOpenRef.current) {
-      setForm({ productId: preselectedProductId || products[0]?.id || "", author: "", email: "", rating: 0, title: "", text: "" });
+      const timer = setTimeout(() => setForm({ productId: preselectedProductId || products[0]?.id || "", author: "", email: "", rating: 0, title: "", text: "" }), 0);
+      prevOpenRef.current = open;
+      return () => clearTimeout(timer);
     }
     prevOpenRef.current = open;
   });
@@ -607,7 +796,7 @@ function WriteReviewDialog({ open, onOpenChange, products, preselectedProductId 
 
 /* ─────────── Product Detail Modal ─────────── */
 
-function ProductDetailModal({ product, open, onOpenChange, onAddToCart, onWriteReview }: { product: ProductType | null; open: boolean; onOpenChange: (o: boolean) => void; onAddToCart: (p: ProductType) => void; onWriteReview: (productId: string) => void }) {
+function ProductDetailModal({ product, open, onOpenChange, onAddToCart, onWriteReview, isWishlisted, onToggleWishlist }: { product: ProductType | null; open: boolean; onOpenChange: (o: boolean) => void; onAddToCart: (p: ProductType) => void; onWriteReview: (productId: string) => void; isWishlisted: boolean; onToggleWishlist: (id: string) => void }) {
   const [quantity, setQuantity] = useState(1);
   const [selectedLength, setSelectedLength] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
@@ -616,13 +805,13 @@ function ProductDetailModal({ product, open, onOpenChange, onAddToCart, onWriteR
 
   useEffect(() => {
     if (open && !prevOpenRef.current && product) {
-      setQuantity(1);
-      setSelectedLength("");
-      setSelectedColor("");
+      const timer = setTimeout(() => { setQuantity(1); setSelectedLength(""); setSelectedColor(""); }, 0);
       fetch(`/api/reviews?productId=${product.id}&limit=5`)
         .then((r) => r.json())
         .then((d) => setReviews(d.reviews || []))
         .catch(() => {});
+      prevOpenRef.current = open;
+      return () => clearTimeout(timer);
     }
     prevOpenRef.current = open;
   });
@@ -698,10 +887,15 @@ function ProductDetailModal({ product, open, onOpenChange, onAddToCart, onWriteR
             <Button onClick={() => { onAddToCart(product); onOpenChange(false); }} disabled={product.stock <= 0} className={`w-full font-semibold py-6 rounded-full text-sm transition-all ${product.stock <= 0 ? "bg-luxury-gray text-muted-foreground cursor-not-allowed" : "gold-gradient text-luxury-black hover:opacity-90 shadow-lg shadow-gold/20"}`}>
               {product.stock <= 0 ? "Out of Stock" : <><ShoppingBag className="w-4 h-4 mr-2" />Add to Cart — ${(product.price * quantity).toFixed(2)}</>}
             </Button>
-            {/* Write Review */}
-            <Button variant="outline" onClick={() => { onOpenChange(false); onWriteReview(product.id); }} className="w-full mt-3 border-luxury-border text-white/70 hover:text-gold hover:border-gold rounded-full py-3 text-sm">
-              <Send className="w-4 h-4 mr-2" />Write a Review
-            </Button>
+            {/* Wishlist + Review buttons */}
+            <div className="flex gap-3 mt-3">
+              <Button variant="outline" onClick={() => onToggleWishlist(product.id)} className={`flex-1 border-luxury-border rounded-full py-3 text-sm transition-all ${isWishlisted ? "border-pink text-pink hover:bg-pink/10" : "text-white/70 hover:text-gold hover:border-gold"}`}>
+                <Heart className={`w-4 h-4 mr-2 ${isWishlisted ? "fill-pink" : ""}`} />{isWishlisted ? "Wishlisted" : "Add to Wishlist"}
+              </Button>
+              <Button variant="outline" onClick={() => { onOpenChange(false); onWriteReview(product.id); }} className="flex-1 border-luxury-border text-white/70 hover:text-gold hover:border-gold rounded-full py-3 text-sm">
+                <Send className="w-4 h-4 mr-2" />Review
+              </Button>
+            </div>
           </div>
         </div>
         {/* Reviews */}
@@ -760,11 +954,171 @@ function NewsletterSection() {
   );
 }
 
+/* ─────────── Contact Form Section ─────────── */
+
+function ContactSection() {
+  const [form, setForm] = useState({ name: "", email: "", phone: "", subject: "", message: "" });
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.name || !form.email || !form.subject || !form.message) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      if (res.ok) {
+        toast.success("Message sent successfully! We'll get back to you soon.");
+        setForm({ name: "", email: "", phone: "", subject: "", message: "" });
+      } else {
+        toast.error("Failed to send message. Please try again.");
+      }
+    } catch {
+      toast.error("Network error. Please try again.");
+    }
+    setSubmitting(false);
+  };
+
+  return (
+    <section id="contact" className="py-20 md:py-28 bg-luxury-black relative overflow-hidden">
+      <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-gold/5 rounded-full blur-[150px]" />
+      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] bg-pink/5 rounded-full blur-[120px]" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <SectionHeading subtitle="Get In Touch" title="Contact Us" description="Have a question or need help? We'd love to hear from you. Send us a message and we'll respond as soon as possible." />
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
+          {/* Contact Info */}
+          <div className="lg:col-span-2 space-y-6">
+            <div className="p-6 rounded-2xl border border-luxury-border bg-luxury-dark/50 space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-xl gold-gradient flex items-center justify-center flex-shrink-0"><Mail className="w-5 h-5 text-luxury-black" /></div>
+                <div><p className="text-white font-semibold text-sm">Email Us</p><p className="text-muted-foreground text-sm mt-1">hello@lacellehair.com</p></div>
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-xl gold-gradient flex items-center justify-center flex-shrink-0"><Phone className="w-5 h-5 text-luxury-black" /></div>
+                <div><p className="text-white font-semibold text-sm">Call Us</p><p className="text-muted-foreground text-sm mt-1">+1 (800) LACELLE-HR</p></div>
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-xl gold-gradient flex items-center justify-center flex-shrink-0"><Clock className="w-5 h-5 text-luxury-black" /></div>
+                <div><p className="text-white font-semibold text-sm">Business Hours</p><p className="text-muted-foreground text-sm mt-1">Mon – Fri: 9AM – 6PM EST</p><p className="text-muted-foreground text-sm">Sat: 10AM – 4PM EST</p></div>
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="w-11 h-11 rounded-xl gold-gradient flex items-center justify-center flex-shrink-0"><MapPin className="w-5 h-5 text-luxury-black" /></div>
+                <div><p className="text-white font-semibold text-sm">Location</p><p className="text-muted-foreground text-sm mt-1">Serving customers nationwide</p></div>
+              </div>
+            </div>
+            <div className="p-6 rounded-2xl border border-luxury-border bg-gradient-to-r from-luxury-dark via-luxury-gray/30 to-luxury-dark">
+              <p className="text-gold font-semibold text-sm mb-2">Quick Response Promise</p>
+              <p className="text-muted-foreground text-sm leading-relaxed">We aim to respond to all inquiries within 24 hours during business days. For urgent matters, please call us directly.</p>
+            </div>
+          </div>
+          {/* Contact Form */}
+          <div className="lg:col-span-3">
+            <form onSubmit={handleSubmit} className="p-6 md:p-8 rounded-2xl border border-luxury-border bg-luxury-dark/50 space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div><label className="text-sm text-white/80 mb-1.5 block">Name *</label><Input value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} className="bg-luxury-gray border-luxury-border text-white" placeholder="Your name" required /></div>
+                <div><label className="text-sm text-white/80 mb-1.5 block">Email *</label><Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} className="bg-luxury-gray border-luxury-border text-white" placeholder="your@email.com" required /></div>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div><label className="text-sm text-white/80 mb-1.5 block">Phone (optional)</label><Input type="tel" value={form.phone} onChange={(e) => setForm((f) => ({ ...f, phone: e.target.value }))} className="bg-luxury-gray border-luxury-border text-white" placeholder="+1 (555) 000-0000" /></div>
+                <div><label className="text-sm text-white/80 mb-1.5 block">Subject *</label><Input value={form.subject} onChange={(e) => setForm((f) => ({ ...f, subject: e.target.value }))} className="bg-luxury-gray border-luxury-border text-white" placeholder="How can we help?" required /></div>
+              </div>
+              <div><label className="text-sm text-white/80 mb-1.5 block">Message *</label><Textarea value={form.message} onChange={(e) => setForm((f) => ({ ...f, message: e.target.value }))} className="bg-luxury-gray border-luxury-border text-white min-h-[140px]" placeholder="Tell us more..." required /></div>
+              <Button type="submit" disabled={submitting} className="w-full gold-gradient text-luxury-black font-semibold py-3 rounded-full hover:opacity-90 transition-all">
+                {submitting ? "Sending..." : <><Send className="w-4 h-4 mr-2" />Send Message</>}
+              </Button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────── Track Order Dialog ─────────── */
+
+function TrackOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+  const [form, setForm] = useState({ email: "", orderNumber: "" });
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!form.email || !form.orderNumber) {
+      toast.error("Please enter both email and order number");
+      return;
+    }
+    setSubmitting(true);
+    setTimeout(() => {
+      toast.info("Order tracking is currently available via WhatsApp. You will be redirected shortly.");
+      setSubmitting(false);
+      onOpenChange(false);
+      setTimeout(() => {
+        const msg = encodeURIComponent(`Hi, I'd like to track my order.\n\nOrder Number: ${form.orderNumber}\nEmail: ${form.email}`);
+        window.open(`https://wa.me/1234567890?text=${msg}`, "_blank");
+      }, 1000);
+    }, 1000);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-luxury-dark border-luxury-border max-w-md">
+        <DialogHeader>
+          <DialogTitle className="text-white flex items-center gap-2"><Package className="w-5 h-5 text-gold" />Track Your Order</DialogTitle>
+          <DialogDescription className="text-muted-foreground">Enter your order details to get tracking information</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+          <div><label className="text-sm text-white/80 mb-1 block">Email *</label><Input type="email" value={form.email} onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))} className="bg-luxury-gray border-luxury-border text-white" placeholder="your@email.com" required /></div>
+          <div><label className="text-sm text-white/80 mb-1 block">Order Number *</label><Input value={form.orderNumber} onChange={(e) => setForm((f) => ({ ...f, orderNumber: e.target.value }))} className="bg-luxury-gray border-luxury-border text-white" placeholder="e.g. LAC-12345" required /></div>
+          <Button type="submit" disabled={submitting} className="w-full gold-gradient text-luxury-black font-semibold py-3 rounded-full hover:opacity-90">
+            {submitting ? "Looking up..." : "Track Order"}
+          </Button>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ─────────── Legal Dialog ─────────── */
+
+function LegalDialog({ open, onOpenChange, title }: { open: boolean; onOpenChange: (o: boolean) => void; title: string }) {
+  const contentMap: Record<string, string> = {
+    "Privacy Policy": "LACELLE HAIR Privacy Policy\n\nLast updated: January 2025\n\nAt LACELLE HAIR, we take your privacy seriously. This policy describes how we collect, use, and protect your personal information.\n\nInformation We Collect:\n• Name and contact information when you place an order\n• Shipping and billing addresses\n• Email address for order updates and newsletters\n• Payment information (processed securely by our payment provider)\n• Browsing behavior on our website\n\nHow We Use Your Information:\n• Process and fulfill your orders\n• Send order confirmations and shipping updates\n• Improve our products and services\n• Send promotional emails (with your consent)\n• Provide customer support\n\nData Protection:\nWe use industry-standard encryption to protect your personal data. We never sell your personal information to third parties.\n\nYour Rights:\nYou have the right to access, correct, or delete your personal data at any time by contacting us at hello@lacellehair.com.\n\nContact:\nFor privacy-related questions, email us at privacy@lacellehair.com.",
+    "Terms of Service": "LACELLE HAIR Terms of Service\n\nLast updated: January 2025\n\nBy using our website and purchasing our products, you agree to the following terms.\n\nProducts:\n• All products are described as accurately as possible. Slight variations may occur due to monitor settings and the nature of human hair.\n• Colors shown are representative; actual color may vary slightly.\n• Product images are for illustration purposes.\n\nPricing & Payment:\n• All prices are in USD unless otherwise stated.\n• We reserve the right to change prices at any time without prior notice.\n• Payment must be made in full at the time of purchase.\n\nShipping:\n• Free shipping on orders over $200 within the continental US.\n• Standard shipping takes 3-5 business days.\n• Express shipping options available at checkout.\n• We are not responsible for delays caused by shipping carriers.\n\nReturns & Exchanges:\n• Returns accepted within 30 days of delivery.\n• Products must be in original, unaltered condition.\n• Custom orders and sale items are final sale.\n• Contact us at hello@lacellehair.com to initiate a return.\n\nLimitation of Liability:\nLACELLE HAIR is not liable for any damages resulting from the use of our products. Our liability is limited to the purchase price of the product.",
+    "Cookie Policy": "LACELLE HAIR Cookie Policy\n\nLast updated: January 2025\n\nThis policy explains how we use cookies on our website.\n\nWhat Are Cookies?\nCookies are small text files stored on your device when you visit our website.\n\nTypes of Cookies We Use:\n\nEssential Cookies:\nRequired for basic website functionality like shopping cart, checkout, and user sessions.\n\nAnalytics Cookies:\nHelp us understand how visitors interact with our website so we can improve the experience.\n\nMarketing Cookies:\nUsed to track visitors across websites to display relevant advertisements.\n\nManaging Cookies:\nYou can control or delete cookies through your browser settings. Note that disabling cookies may affect some website functionality.\n\nThird-Party Cookies:\nWe may use third-party services (analytics, payment processors) that set their own cookies.\n\nChanges:\nWe may update this policy from time to time. Changes will be posted on this page with an updated date.\n\nContact:\nFor cookie-related questions, email privacy@lacellehair.com.",
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="bg-luxury-dark border-luxury-border max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-white">{title}</DialogTitle>
+        </DialogHeader>
+        <div className="mt-4 text-muted-foreground text-sm leading-relaxed whitespace-pre-line">
+          {contentMap[title] || "Content coming soon."}
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 /* ─────────── Footer ─────────── */
 
-function Footer() {
+function Footer({ onShopLinkClick, onHelpLinkClick, onLegalClick, socialUrls }: {
+  onShopLinkClick: (link: string) => void;
+  onHelpLinkClick: (link: string) => void;
+  onLegalClick: (link: string) => void;
+  socialUrls: { instagram: string; facebook: string; tiktok: string };
+}) {
+  const shopLinks = ["Bundles", "Frontals", "Closures", "Wigs", "Accessories", "New Arrivals"];
+  const helpLinks = ["FAQ", "Shipping Info", "Returns & Exchanges", "Hair Care Guide", "Track Order", "Contact Us"];
+
   return (
-    <footer id="contact" className="bg-luxury-dark border-t border-luxury-border">
+    <footer className="bg-luxury-dark border-t border-luxury-border">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           <div className="sm:col-span-2 lg:col-span-1">
@@ -774,18 +1128,22 @@ function Footer() {
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed mb-6">Premium hair extensions and wigs sourced from the finest donors around the world. Elevate your beauty with confidence.</p>
             <div className="flex gap-3">
-              {[Instagram, Facebook, Twitter].map((Icon, i) => (
-                <a key={i} href="#" className="w-10 h-10 rounded-full border border-luxury-border flex items-center justify-center text-white/60 hover:text-gold hover:border-gold/50 transition-all"><Icon className="w-4 h-4" /></a>
-              ))}
+              <a href={socialUrls.instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-luxury-border flex items-center justify-center text-white/60 hover:text-gold hover:border-gold/50 transition-all"><Instagram className="w-4 h-4" /></a>
+              <a href={socialUrls.facebook} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-luxury-border flex items-center justify-center text-white/60 hover:text-gold hover:border-gold/50 transition-all"><Facebook className="w-4 h-4" /></a>
+              <a href={socialUrls.tiktok} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-full border border-luxury-border flex items-center justify-center text-white/60 hover:text-gold hover:border-gold/50 transition-all"><Twitter className="w-4 h-4" /></a>
             </div>
           </div>
           <div>
             <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Shop</h4>
-            <ul className="space-y-3">{["Bundles", "Frontals", "Closures", "Wigs", "Accessories", "New Arrivals"].map((link) => <li key={link}><a href="#products" className="text-muted-foreground hover:text-gold text-sm transition-colors">{link}</a></li>)}</ul>
+            <ul className="space-y-3">{shopLinks.map((link) => (
+              <li key={link}><button onClick={() => onShopLinkClick(link)} className="text-muted-foreground hover:text-gold text-sm transition-colors cursor-pointer">{link}</button></li>
+            ))}</ul>
           </div>
           <div>
             <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Help</h4>
-            <ul className="space-y-3">{["FAQ", "Shipping Info", "Returns & Exchanges", "Hair Care Guide", "Track Order", "Contact Us"].map((link) => <li key={link}><a href="#" className="text-muted-foreground hover:text-gold text-sm transition-colors">{link}</a></li>)}</ul>
+            <ul className="space-y-3">{helpLinks.map((link) => (
+              <li key={link}><button onClick={() => onHelpLinkClick(link)} className="text-muted-foreground hover:text-gold text-sm transition-colors cursor-pointer">{link}</button></li>
+            ))}</ul>
           </div>
           <div>
             <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Contact</h4>
@@ -804,7 +1162,9 @@ function Footer() {
         <Separator className="my-8 bg-luxury-border" />
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-muted-foreground">&copy; {new Date().getFullYear()} LACELLE HAIR. All rights reserved.</p>
-          <div className="flex gap-6">{["Privacy Policy", "Terms of Service", "Cookie Policy"].map((link) => <a key={link} href="#" className="text-xs text-muted-foreground hover:text-gold transition-colors">{link}</a>)}</div>
+          <div className="flex gap-6">{["Privacy Policy", "Terms of Service", "Cookie Policy"].map((link) => (
+            <button key={link} onClick={() => onLegalClick(link)} className="text-xs text-muted-foreground hover:text-gold transition-colors cursor-pointer">{link}</button>
+          ))}</div>
         </div>
       </div>
     </footer>
@@ -813,7 +1173,7 @@ function Footer() {
 
 /* ─────────── WhatsApp Button ─────────── */
 
-function WhatsAppButton() {
+function WhatsAppButton({ whatsappNumber }: { whatsappNumber: string }) {
   const [tooltip, setTooltip] = useState(false);
   return (
     <div className="fixed bottom-6 left-6 z-40 group">
@@ -826,7 +1186,7 @@ function WhatsAppButton() {
         )}
       </AnimatePresence>
       <motion.a
-        href="https://wa.me/1234567890"
+        href={`https://wa.me/${whatsappNumber}`}
         target="_blank"
         rel="noopener noreferrer"
         onMouseEnter={() => setTooltip(true)}
@@ -845,6 +1205,38 @@ function WhatsAppButton() {
 
 function CartDrawer({ open, onOpenChange, items, onUpdateQuantity, onRemove }: { open: boolean; onOpenChange: (open: boolean) => void; items: CartItem[]; onUpdateQuantity: (id: string, qty: number) => void; onRemove: (id: string) => void }) {
   const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const [checkingOut, setCheckingOut] = useState(false);
+
+  const handleCheckout = async () => {
+    if (items.length === 0) return;
+    setCheckingOut(true);
+    try {
+      const res = await fetch("/api/settings?key=whatsapp");
+      const data = await res.json();
+      const whatsappNumber = data?.value || "1234567890";
+
+      const lines = items.map((item) => `• ${item.product.name} x${item.quantity} — $${(item.product.price * item.quantity).toFixed(2)}`);
+      const message = `Hi! I'd like to place an order:\n\n${lines.join("\n")}\n\nTotal: $${total.toFixed(2)}`;
+      const encoded = encodeURIComponent(message);
+
+      toast.success("Redirecting to WhatsApp for checkout...");
+      setTimeout(() => {
+        window.open(`https://wa.me/${whatsappNumber}?text=${encoded}`, "_blank");
+        setCheckingOut(false);
+      }, 500);
+    } catch {
+      // Fallback
+      const lines = items.map((item) => `• ${item.product.name} x${item.quantity} — $${(item.product.price * item.quantity).toFixed(2)}`);
+      const message = `Hi! I'd like to place an order:\n\n${lines.join("\n")}\n\nTotal: $${total.toFixed(2)}`;
+      const encoded = encodeURIComponent(message);
+      toast.success("Redirecting to WhatsApp for checkout...");
+      setTimeout(() => {
+        window.open(`https://wa.me/1234567890?text=${encoded}`, "_blank");
+        setCheckingOut(false);
+      }, 500);
+    }
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent className="w-full sm:max-w-md bg-luxury-dark border-luxury-border text-white">
@@ -879,7 +1271,9 @@ function CartDrawer({ open, onOpenChange, items, onUpdateQuantity, onRemove }: {
               <div className="border-t border-luxury-border pt-4 space-y-4">
                 <div className="flex items-center justify-between"><span className="text-muted-foreground text-sm">Subtotal</span><span className="text-xl font-bold text-gold">${total.toFixed(2)}</span></div>
                 <p className="text-xs text-muted-foreground">Shipping & taxes calculated at checkout</p>
-                <Button className="w-full gold-gradient text-luxury-black font-semibold py-6 rounded-full text-sm hover:opacity-90 transition-all shadow-lg shadow-gold/20">Checkout<ChevronRight className="w-4 h-4 ml-1" /></Button>
+                <Button onClick={handleCheckout} disabled={checkingOut} className="w-full gold-gradient text-luxury-black font-semibold py-6 rounded-full text-sm hover:opacity-90 transition-all shadow-lg shadow-gold/20">
+                  {checkingOut ? "Redirecting..." : <>Checkout<ChevronRight className="w-4 h-4 ml-1" /></>}
+                </Button>
                 <Button variant="link" className="w-full text-muted-foreground text-sm hover:text-gold" onClick={() => onOpenChange(false)}>Continue Shopping</Button>
               </div>
             </>
@@ -902,12 +1296,40 @@ export default function Home() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewProductId, setReviewProductId] = useState<string | undefined>();
 
+  // Feature 1: Search
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Feature 3: Wishlist
+  const [wishlistIds, setWishlistIds] = useLocalStorage<string[]>("lacelle-wishlist", []);
+  const [wishlistOpen, setWishlistOpen] = useState(false);
+
+  // Feature 2: Category click → filter
+  const [initialFilter, setInitialFilter] = useState<string | null>(null);
+
+  // Feature 5: Dialogs
+  const [trackOrderOpen, setTrackOrderOpen] = useState(false);
+  const [legalOpen, setLegalOpen] = useState(false);
+  const [legalTitle, setLegalTitle] = useState("");
+
+  // Feature 5: Social URLs
+  const [socialUrls, setSocialUrls] = useState({ instagram: "https://instagram.com/lacellehair", facebook: "https://facebook.com/lacellehair", tiktok: "https://tiktok.com/@lacellehair" });
+
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const wishlistCount = wishlistIds.length;
 
   useEffect(() => {
     const handleScroll = () => setShowBackToTop(window.scrollY > 500);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Keyboard shortcut for search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); setSearchOpen(true); }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
   // Fetch products from API
@@ -934,6 +1356,21 @@ export default function Home() {
         }
       })
       .catch(() => {});
+  }, []);
+
+  // Fetch social URLs from settings
+  useEffect(() => {
+    Promise.allSettled([
+      fetch("/api/settings?key=instagram").then((r) => r.json()),
+      fetch("/api/settings?key=facebook").then((r) => r.json()),
+      fetch("/api/settings?key=tiktok").then((r) => r.json()),
+    ]).then(([insta, fb, tt]) => {
+      setSocialUrls((prev) => ({
+        instagram: insta.status === "fulfilled" && insta.value?.value ? insta.value.value : prev.instagram,
+        facebook: fb.status === "fulfilled" && fb.value?.value ? fb.value.value : prev.facebook,
+        tiktok: tt.status === "fulfilled" && tt.value?.value ? tt.value.value : prev.tiktok,
+      }));
+    });
   }, []);
 
   const addToCart = useCallback((product: ProductType) => {
@@ -965,23 +1402,81 @@ export default function Home() {
     setReviewOpen(true);
   }, []);
 
+  // Feature 3: Toggle wishlist
+  const toggleWishlist = useCallback((productId: string) => {
+    setWishlistIds((prev) => {
+      if (prev.includes(productId)) {
+        toast("Removed from wishlist");
+        return prev.filter((id) => id !== productId);
+      } else {
+        toast.success("Added to wishlist! 💕");
+        return [...prev, productId];
+      }
+    });
+  }, [setWishlistIds]);
+
+  // Feature 2: Category click
+  const handleCategoryClick = useCallback((category: string) => {
+    setInitialFilter(category);
+  }, []);
+
+  // Feature 5: Shop links
+  const handleShopLinkClick = useCallback((link: string) => {
+    const categoryMap: Record<string, string> = { "Bundles": "Bundles", "Frontals": "Frontals", "Closures": "Closures", "Wigs": "Wigs" };
+    if (categoryMap[link]) {
+      setInitialFilter(link);
+    } else {
+      toast.info(`${link} — Coming soon!`);
+    }
+  }, []);
+
+  // Feature 5: Help links
+  const handleHelpLinkClick = useCallback((link: string) => {
+    if (link === "Contact Us") {
+      document.querySelector("#contact")?.scrollIntoView({ behavior: "smooth" });
+    } else if (link === "Track Order") {
+      setTrackOrderOpen(true);
+    } else {
+      toast.info(`${link} — Coming soon!`);
+    }
+  }, []);
+
+  // Feature 5: Legal links
+  const handleLegalClick = useCallback((title: string) => {
+    setLegalTitle(title);
+    setLegalOpen(true);
+  }, []);
+
+  // Clear initialFilter after ProductsSection consumes it
+  const handleInitialFilterConsumed = useCallback(() => {
+    // We use a key approach — but since we use effect in ProductsSection,
+    // we just let the initialFilter remain and it only triggers once.
+    // Reset after a timeout so re-clicking same category still works.
+    setTimeout(() => setInitialFilter(null), 100);
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col bg-luxury-black">
-      <Navbar cartCount={cartCount} onCartOpen={() => setCartOpen(true)} />
+      <Navbar cartCount={cartCount} onCartOpen={() => setCartOpen(true)} onSearchOpen={() => setSearchOpen(true)} wishlistCount={wishlistCount} onWishlistOpen={() => setWishlistOpen(true)} />
       <main className="flex-1">
         <HeroSection />
-        <CategoriesSection />
-        <ProductsSection products={products} onAddToCart={addToCart} onProductClick={handleProductClick} />
+        <CategoriesSection onCategoryClick={handleCategoryClick} />
+        <ProductsSection products={products} onAddToCart={addToCart} onProductClick={handleProductClick} initialFilter={initialFilter} wishlistIds={wishlistIds} onToggleWishlist={toggleWishlist} />
         <AboutSection />
         <TestimonialsSection onWriteReview={handleWriteReview} />
         <CustomerReviewsSection products={products} onWriteReview={handleWriteReview} />
         <NewsletterSection />
+        <ContactSection />
       </main>
-      <Footer />
+      <Footer onShopLinkClick={handleShopLinkClick} onHelpLinkClick={handleHelpLinkClick} onLegalClick={handleLegalClick} socialUrls={socialUrls} />
       <CartDrawer open={cartOpen} onOpenChange={setCartOpen} items={cart} onUpdateQuantity={updateQuantity} onRemove={removeItem} />
-      <ProductDetailModal product={detailProduct} open={detailOpen} onOpenChange={setDetailOpen} onAddToCart={addToCart} onWriteReview={handleWriteReview} />
+      <WishlistDrawer open={wishlistOpen} onOpenChange={setWishlistOpen} wishlistIds={wishlistIds} products={products} onRemoveFromWishlist={toggleWishlist} onAddToCart={addToCart} />
+      <SearchOverlay open={searchOpen} onOpenChange={setSearchOpen} products={products} onProductClick={handleProductClick} />
+      <ProductDetailModal product={detailProduct} open={detailOpen} onOpenChange={setDetailOpen} onAddToCart={addToCart} onWriteReview={handleWriteReview} isWishlisted={detailProduct ? wishlistIds.includes(detailProduct.id) : false} onToggleWishlist={toggleWishlist} />
       <WriteReviewDialog key={reviewProductId || 'new'} open={reviewOpen} onOpenChange={setReviewOpen} products={products} preselectedProductId={reviewProductId} />
-      <WhatsAppButton />
+      <TrackOrderDialog open={trackOrderOpen} onOpenChange={setTrackOrderOpen} />
+      <LegalDialog open={legalOpen} onOpenChange={setLegalOpen} title={legalTitle} />
+      <WhatsAppButton whatsappNumber="1234567890" />
       <AnimatePresence>
         {showBackToTop && (
           <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className="fixed bottom-6 right-6 z-50">
