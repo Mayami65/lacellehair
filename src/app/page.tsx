@@ -311,7 +311,7 @@ function WishlistDrawer({ open, onOpenChange, wishlistIds, products, onRemoveFro
 
 /* ─────────── Navbar ─────────── */
 
-function Navbar({ cartCount, onCartOpen, onSearchOpen, wishlistCount, onWishlistOpen }: { cartCount: number; onCartOpen: () => void; onSearchOpen: () => void; wishlistCount: number; onWishlistOpen: () => void }) {
+function Navbar({ cartCount, onCartOpen, onSearchOpen, wishlistCount, onWishlistOpen, promoCode }: { cartCount: number; onCartOpen: () => void; onSearchOpen: () => void; wishlistCount: number; onWishlistOpen: () => void; promoCode: string }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -332,7 +332,7 @@ function Navbar({ cartCount, onCartOpen, onSearchOpen, wishlistCount, onWishlist
       <div className="bg-gradient-to-r from-gold-dark via-gold to-gold-dark text-luxury-black text-center py-2 px-4 text-xs md:text-sm font-semibold tracking-wide">
         <div className="flex items-center justify-center gap-2">
           <Crown className="w-3.5 h-3.5" />
-          <span>FREE SHIPPING on orders over $200 | Use code LUXE20 for 20% off</span>
+          <span>FREE SHIPPING on orders over $200 | Use code {promoCode} for 20% off</span>
           <Crown className="w-3.5 h-3.5" />
         </div>
       </div>
@@ -956,7 +956,7 @@ function NewsletterSection() {
 
 /* ─────────── Contact Form Section ─────────── */
 
-function ContactSection() {
+function ContactSection({ siteEmail, sitePhone }: { siteEmail: string; sitePhone: string }) {
   const [form, setForm] = useState({ name: "", email: "", phone: "", subject: "", message: "" });
   const [submitting, setSubmitting] = useState(false);
 
@@ -997,11 +997,11 @@ function ContactSection() {
             <div className="p-6 rounded-2xl border border-luxury-border bg-luxury-dark/50 space-y-6">
               <div className="flex items-start gap-4">
                 <div className="w-11 h-11 rounded-xl gold-gradient flex items-center justify-center flex-shrink-0"><Mail className="w-5 h-5 text-luxury-black" /></div>
-                <div><p className="text-white font-semibold text-sm">Email Us</p><p className="text-muted-foreground text-sm mt-1">hello@lacellehair.com</p></div>
+                <div><p className="text-white font-semibold text-sm">Email Us</p><p className="text-muted-foreground text-sm mt-1">{siteEmail}</p></div>
               </div>
               <div className="flex items-start gap-4">
                 <div className="w-11 h-11 rounded-xl gold-gradient flex items-center justify-center flex-shrink-0"><Phone className="w-5 h-5 text-luxury-black" /></div>
-                <div><p className="text-white font-semibold text-sm">Call Us</p><p className="text-muted-foreground text-sm mt-1">+1 (800) LACELLE-HR</p></div>
+                <div><p className="text-white font-semibold text-sm">Call Us</p><p className="text-muted-foreground text-sm mt-1">{sitePhone}</p></div>
               </div>
               <div className="flex items-start gap-4">
                 <div className="w-11 h-11 rounded-xl gold-gradient flex items-center justify-center flex-shrink-0"><Clock className="w-5 h-5 text-luxury-black" /></div>
@@ -1042,7 +1042,7 @@ function ContactSection() {
 
 /* ─────────── Track Order Dialog ─────────── */
 
-function TrackOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (o: boolean) => void }) {
+function TrackOrderDialog({ open, onOpenChange, whatsappNumber }: { open: boolean; onOpenChange: (o: boolean) => void; whatsappNumber: string }) {
   const [form, setForm] = useState({ email: "", orderNumber: "" });
   const [submitting, setSubmitting] = useState(false);
 
@@ -1059,7 +1059,7 @@ function TrackOrderDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
       onOpenChange(false);
       setTimeout(() => {
         const msg = encodeURIComponent(`Hi, I'd like to track my order.\n\nOrder Number: ${form.orderNumber}\nEmail: ${form.email}`);
-        window.open(`https://wa.me/1234567890?text=${msg}`, "_blank");
+        window.open(`https://wa.me/${whatsappNumber}?text=${msg}`, "_blank");
       }, 1000);
     }, 1000);
   };
@@ -1108,11 +1108,13 @@ function LegalDialog({ open, onOpenChange, title }: { open: boolean; onOpenChang
 
 /* ─────────── Footer ─────────── */
 
-function Footer({ onShopLinkClick, onHelpLinkClick, onLegalClick, socialUrls }: {
+function Footer({ onShopLinkClick, onHelpLinkClick, onLegalClick, socialUrls, siteEmail, sitePhone }: {
   onShopLinkClick: (link: string) => void;
   onHelpLinkClick: (link: string) => void;
   onLegalClick: (link: string) => void;
   socialUrls: { instagram: string; facebook: string; tiktok: string };
+  siteEmail: string;
+  sitePhone: string;
 }) {
   const shopLinks = ["Bundles", "Frontals", "Closures", "Wigs", "Accessories", "New Arrivals"];
   const helpLinks = ["FAQ", "Shipping Info", "Returns & Exchanges", "Hair Care Guide", "Track Order", "Contact Us"];
@@ -1148,8 +1150,8 @@ function Footer({ onShopLinkClick, onHelpLinkClick, onLegalClick, socialUrls }: 
           <div>
             <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Contact</h4>
             <ul className="space-y-3 text-sm text-muted-foreground">
-              <li>hello@lacellehair.com</li>
-              <li>+1 (800) LACELLE-HR</li>
+              <li>{siteEmail}</li>
+              <li>{sitePhone}</li>
               <li>Mon - Fri: 9AM - 6PM EST</li>
               <li>Sat: 10AM - 4PM EST</li>
             </ul>
@@ -1203,38 +1205,21 @@ function WhatsAppButton({ whatsappNumber }: { whatsappNumber: string }) {
 
 /* ─────────── Cart Drawer ─────────── */
 
-function CartDrawer({ open, onOpenChange, items, onUpdateQuantity, onRemove }: { open: boolean; onOpenChange: (open: boolean) => void; items: CartItem[]; onUpdateQuantity: (id: string, qty: number) => void; onRemove: (id: string) => void }) {
+function CartDrawer({ open, onOpenChange, items, onUpdateQuantity, onRemove, whatsappNumber }: { open: boolean; onOpenChange: (open: boolean) => void; items: CartItem[]; onUpdateQuantity: (id: string, qty: number) => void; onRemove: (id: string) => void; whatsappNumber: string }) {
   const total = items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
   const [checkingOut, setCheckingOut] = useState(false);
 
-  const handleCheckout = async () => {
+  const handleCheckout = () => {
     if (items.length === 0) return;
     setCheckingOut(true);
-    try {
-      const res = await fetch("/api/settings?key=whatsapp");
-      const data = await res.json();
-      const whatsappNumber = data?.value || "1234567890";
-
-      const lines = items.map((item) => `• ${item.product.name} x${item.quantity} — $${(item.product.price * item.quantity).toFixed(2)}`);
-      const message = `Hi! I'd like to place an order:\n\n${lines.join("\n")}\n\nTotal: $${total.toFixed(2)}`;
-      const encoded = encodeURIComponent(message);
-
-      toast.success("Redirecting to WhatsApp for checkout...");
-      setTimeout(() => {
-        window.open(`https://wa.me/${whatsappNumber}?text=${encoded}`, "_blank");
-        setCheckingOut(false);
-      }, 500);
-    } catch {
-      // Fallback
-      const lines = items.map((item) => `• ${item.product.name} x${item.quantity} — $${(item.product.price * item.quantity).toFixed(2)}`);
-      const message = `Hi! I'd like to place an order:\n\n${lines.join("\n")}\n\nTotal: $${total.toFixed(2)}`;
-      const encoded = encodeURIComponent(message);
-      toast.success("Redirecting to WhatsApp for checkout...");
-      setTimeout(() => {
-        window.open(`https://wa.me/1234567890?text=${encoded}`, "_blank");
-        setCheckingOut(false);
-      }, 500);
-    }
+    const lines = items.map((item) => `• ${item.product.name} x${item.quantity} — $${(item.product.price * item.quantity).toFixed(2)}`);
+    const message = `Hi! I'd like to place an order:\n\n${lines.join("\n")}\n\nTotal: $${total.toFixed(2)}`;
+    const encoded = encodeURIComponent(message);
+    toast.success("Redirecting to WhatsApp for checkout...");
+    setTimeout(() => {
+      window.open(`https://wa.me/${whatsappNumber}?text=${encoded}`, "_blank");
+      setCheckingOut(false);
+    }, 500);
   };
 
   return (
@@ -1311,8 +1296,14 @@ export default function Home() {
   const [legalOpen, setLegalOpen] = useState(false);
   const [legalTitle, setLegalTitle] = useState("");
 
-  // Feature 5: Social URLs
+  // Site-wide settings from admin
+  const [siteSettings, setSiteSettings] = useState<Record<string, string>>({});
   const [socialUrls, setSocialUrls] = useState({ instagram: "https://instagram.com/lacellehair", facebook: "https://facebook.com/lacellehair", tiktok: "https://tiktok.com/@lacellehair" });
+
+  const whatsappNumber = siteSettings.whatsapp_number || "1234567890";
+  const siteEmail = siteSettings.email || "hello@lacellehair.com";
+  const sitePhone = siteSettings.phone || "+1 (800) LACELLE-HR";
+  const promoCode = siteSettings.promo_code || "LUXE20";
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const wishlistCount = wishlistIds.length;
@@ -1358,19 +1349,22 @@ export default function Home() {
       .catch(() => {});
   }, []);
 
-  // Fetch social URLs from settings
+  // Fetch ALL settings from API (used everywhere)
   useEffect(() => {
-    Promise.allSettled([
-      fetch("/api/settings?key=instagram").then((r) => r.json()),
-      fetch("/api/settings?key=facebook").then((r) => r.json()),
-      fetch("/api/settings?key=tiktok").then((r) => r.json()),
-    ]).then(([insta, fb, tt]) => {
-      setSocialUrls((prev) => ({
-        instagram: insta.status === "fulfilled" && insta.value?.value ? insta.value.value : prev.instagram,
-        facebook: fb.status === "fulfilled" && fb.value?.value ? fb.value.value : prev.facebook,
-        tiktok: tt.status === "fulfilled" && tt.value?.value ? tt.value.value : prev.tiktok,
-      }));
-    });
+    fetch("/api/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && typeof data === "object" && !data.error) {
+          setSiteSettings(data);
+          // Sync social URLs from settings
+          setSocialUrls((prev) => ({
+            instagram: data.instagram || prev.instagram,
+            facebook: data.facebook || prev.facebook,
+            tiktok: data.tiktok || prev.tiktok,
+          }));
+        }
+      })
+      .catch(() => {});
   }, []);
 
   const addToCart = useCallback((product: ProductType) => {
@@ -1457,7 +1451,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-luxury-black">
-      <Navbar cartCount={cartCount} onCartOpen={() => setCartOpen(true)} onSearchOpen={() => setSearchOpen(true)} wishlistCount={wishlistCount} onWishlistOpen={() => setWishlistOpen(true)} />
+      <Navbar cartCount={cartCount} onCartOpen={() => setCartOpen(true)} onSearchOpen={() => setSearchOpen(true)} wishlistCount={wishlistCount} onWishlistOpen={() => setWishlistOpen(true)} promoCode={promoCode} />
       <main className="flex-1">
         <HeroSection />
         <CategoriesSection onCategoryClick={handleCategoryClick} />
@@ -1466,17 +1460,17 @@ export default function Home() {
         <TestimonialsSection onWriteReview={handleWriteReview} />
         <CustomerReviewsSection products={products} onWriteReview={handleWriteReview} />
         <NewsletterSection />
-        <ContactSection />
+        <ContactSection siteEmail={siteEmail} sitePhone={sitePhone} />
       </main>
-      <Footer onShopLinkClick={handleShopLinkClick} onHelpLinkClick={handleHelpLinkClick} onLegalClick={handleLegalClick} socialUrls={socialUrls} />
-      <CartDrawer open={cartOpen} onOpenChange={setCartOpen} items={cart} onUpdateQuantity={updateQuantity} onRemove={removeItem} />
+      <Footer onShopLinkClick={handleShopLinkClick} onHelpLinkClick={handleHelpLinkClick} onLegalClick={handleLegalClick} socialUrls={socialUrls} siteEmail={siteEmail} sitePhone={sitePhone} />
+      <CartDrawer open={cartOpen} onOpenChange={setCartOpen} items={cart} onUpdateQuantity={updateQuantity} onRemove={removeItem} whatsappNumber={whatsappNumber} />
       <WishlistDrawer open={wishlistOpen} onOpenChange={setWishlistOpen} wishlistIds={wishlistIds} products={products} onRemoveFromWishlist={toggleWishlist} onAddToCart={addToCart} />
       <SearchOverlay open={searchOpen} onOpenChange={setSearchOpen} products={products} onProductClick={handleProductClick} />
       <ProductDetailModal product={detailProduct} open={detailOpen} onOpenChange={setDetailOpen} onAddToCart={addToCart} onWriteReview={handleWriteReview} isWishlisted={detailProduct ? wishlistIds.includes(detailProduct.id) : false} onToggleWishlist={toggleWishlist} />
       <WriteReviewDialog key={reviewProductId || 'new'} open={reviewOpen} onOpenChange={setReviewOpen} products={products} preselectedProductId={reviewProductId} />
-      <TrackOrderDialog open={trackOrderOpen} onOpenChange={setTrackOrderOpen} />
+      <TrackOrderDialog open={trackOrderOpen} onOpenChange={setTrackOrderOpen} whatsappNumber={whatsappNumber} />
       <LegalDialog open={legalOpen} onOpenChange={setLegalOpen} title={legalTitle} />
-      <WhatsAppButton whatsappNumber="1234567890" />
+      <WhatsAppButton whatsappNumber={whatsappNumber} />
       <AnimatePresence>
         {showBackToTop && (
           <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} className="fixed bottom-6 right-6 z-50">

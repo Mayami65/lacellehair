@@ -111,3 +111,28 @@ Stage Summary:
 - Every clickable element on the site now has functional behavior
 - No existing features broken
 - Dev server verified running and serving correctly
+
+---
+Task ID: 6
+Agent: Main Agent
+Task: Make admin settings dynamically update all storefront fields
+
+Work Log:
+- Added siteSettings state to Home component that fetches ALL settings from /api/settings on mount
+- Derived whatsappNumber, siteEmail, sitePhone, promoCode from siteSettings with fallback defaults
+- Replaced 3 separate social URL fetches with single settings fetch
+- Updated WhatsAppButton to use dynamic whatsappNumber prop
+- Updated CartDrawer checkout to use whatsappNumber prop (removed inline fetch with wrong key)
+- Updated TrackOrderDialog to use whatsappNumber prop
+- Updated Footer to use dynamic siteEmail and sitePhone props
+- Updated ContactSection to use dynamic siteEmail and sitePhone props
+- Updated Navbar announcement bar to use dynamic promoCode prop
+- Reseeded database after force-reset to populate settings
+
+Stage Summary:
+- All settings from admin panel now dynamically update the storefront
+- WhatsApp number, email, phone, promo code, social URLs all come from /api/settings
+- Changing whatsapp_number in admin immediately affects: floating WhatsApp button, cart checkout, order tracking
+- Changing email/phone in admin updates: contact section, footer contact info
+- Changing promo_code in admin updates: announcement bar
+- Changing instagram/facebook/tiktok in admin updates: footer social links
