@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { motion, useInView, AnimatePresence } from "framer-motion";
 import {
   ShoppingBag,
@@ -103,7 +104,7 @@ interface CartItem {
 /* ─────────── Static Data ─────────── */
 
 const NAV_LINKS = [
-  { label: "Shop", href: "#products" },
+  { label: "Shop", href: "/shop" },
   { label: "Collections", href: "#categories" },
   { label: "About", href: "#about" },
   { label: "Reviews", href: "#testimonials" },
@@ -348,7 +349,7 @@ function WishlistDrawer({ open, onOpenChange, wishlistIds, products, onRemoveFro
 
 /* ─────────── Navbar ─────────── */
 
-function Navbar({ cartCount, onCartOpen, onSearchOpen, wishlistCount, onWishlistOpen, promoCode }: { cartCount: number; onCartOpen: () => void; onSearchOpen: () => void; wishlistCount: number; onWishlistOpen: () => void; promoCode: string }) {
+function Navbar({ cartCount, onCartOpen, onSearchOpen, wishlistCount, onWishlistOpen, promoCode, onNavigate }: { cartCount: number; onCartOpen: () => void; onSearchOpen: () => void; wishlistCount: number; onWishlistOpen: () => void; promoCode: string; onNavigate: (href: string) => void }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -360,9 +361,13 @@ function Navbar({ cartCount, onCartOpen, onSearchOpen, wishlistCount, onWishlist
 
   const handleNavClick = useCallback((href: string) => {
     setMobileOpen(false);
-    const el = document.querySelector(href);
-    if (el) el.scrollIntoView({ behavior: "smooth" });
-  }, []);
+    if (href.startsWith("/")) {
+      onNavigate(href);
+    } else {
+      const el = document.querySelector(href);
+      if (el) el.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [onNavigate]);
 
   return (
     <>
@@ -437,7 +442,7 @@ function Navbar({ cartCount, onCartOpen, onSearchOpen, wishlistCount, onWishlist
 
 function HeroSection() {
   const mobile = useIsMobile();
-  const slides = [{ image: "/images/hero.jpg", headline: "Unleash Your", highlight: "Inner Royalty", subtext: "Premium Raw Indian Hair Extensions — Sourced for Excellence, Crafted for Perfection", cta: "Shop Collection", ctaLink: "#products" }];
+  const slides = [{ image: "/images/hero.jpg", headline: "Unleash Your", highlight: "Inner Royalty", subtext: "Premium Raw Indian Hair Extensions — Sourced for Excellence, Crafted for Perfection", cta: "Shop Collection", ctaLink: "/shop" }];
   const d = mobile ? 0 : 0.2;
   return (
     <section className="relative min-h-[90vh] md:min-h-screen flex items-center overflow-hidden">
@@ -460,7 +465,7 @@ function HeroSection() {
           </motion.h1>
           <motion.p initial={mobile ? false : { opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: d + (mobile ? 0 : 0.6) }} className="text-base sm:text-lg text-white/70 mb-8 max-w-lg leading-relaxed">{slides[0].subtext}</motion.p>
           <motion.div initial={mobile ? false : { opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: d + (mobile ? 0 : 0.8) }} className="flex flex-wrap gap-4">
-            <a href={slides[0].ctaLink} onClick={(e) => { e.preventDefault(); document.querySelector(slides[0].ctaLink)?.scrollIntoView({ behavior: "smooth" }); }}>
+            <a href={slides[0].ctaLink}>
               <Button size="lg" className="gold-gradient text-luxury-black font-semibold px-8 py-6 text-sm sm:text-base rounded-full hover:opacity-90 transition-all shadow-lg shadow-gold/20 hover:shadow-gold/40">{slides[0].cta}<ChevronRight className="w-4 h-4 ml-1" /></Button>
             </a>
             <a href="#categories" onClick={(e) => { e.preventDefault(); document.querySelector("#categories")?.scrollIntoView({ behavior: "smooth" }); }}>
@@ -631,7 +636,9 @@ function ProductsSection({ products, onAddToCart, onProductClick, initialFilter,
           ))}
         </div>
         <div className="text-center mt-12">
-          <Button variant="outline" onClick={() => setActiveFilter("All")} className="border-gold/50 text-gold hover:bg-gold hover:text-luxury-black rounded-full px-10 py-6 text-sm transition-all">View All Products<ChevronRight className="w-4 h-4 ml-2" /></Button>
+          <a href="/shop">
+            <Button variant="outline" className="border-gold/50 text-gold hover:bg-gold hover:text-luxury-black rounded-full px-10 py-6 text-sm transition-all">View All Products<ChevronRight className="w-4 h-4 ml-2" /></Button>
+          </a>
         </div>
       </div>
     </section>
@@ -1495,6 +1502,7 @@ function CartDrawer({ open, onOpenChange, items, onUpdateQuantity, onRemove, wha
 /* ─────────── Main Page ─────────── */
 
 export default function Home() {
+  const router = useRouter();
   const [cart, setCart] = useState<CartItem[]>([]);
   const [cartOpen, setCartOpen] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -1566,6 +1574,7 @@ export default function Home() {
             colors: JSON.parse((p.colors as string) || "[]"),
             stock: p.stock as number,
             lowStockThreshold: p.lowStockThreshold as number,
+            variants: (p.variants || []) as VariantType[],
           })));
         }
       })
@@ -1644,7 +1653,7 @@ export default function Home() {
   const handleShopLinkClick = useCallback((link: string) => {
     const categoryMap: Record<string, string> = { "Bundles": "Bundles", "Frontals": "Frontals", "Closures": "Closures", "Wigs": "Wigs" };
     if (categoryMap[link]) {
-      setInitialFilter(link);
+      router.push(`/shop?category=${encodeURIComponent(link)}`);
     } else {
       toast.info(`${link} — Coming soon!`);
     }
@@ -1677,7 +1686,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-luxury-black">
-      <Navbar cartCount={cartCount} onCartOpen={() => setCartOpen(true)} onSearchOpen={() => setSearchOpen(true)} wishlistCount={wishlistCount} onWishlistOpen={() => setWishlistOpen(true)} promoCode={promoCode} />
+      <Navbar cartCount={cartCount} onCartOpen={() => setCartOpen(true)} onSearchOpen={() => setSearchOpen(true)} wishlistCount={wishlistCount} onWishlistOpen={() => setWishlistOpen(true)} promoCode={promoCode} onNavigate={(href) => router.push(href)} />
       <main className="flex-1">
         <HeroSection />
         <CategoriesSection onCategoryClick={handleCategoryClick} />

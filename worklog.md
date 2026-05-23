@@ -246,3 +246,40 @@ Stage Summary:
 - Storefront product cards show price ranges when variants exist
 - Product detail modal has full variant selection with dynamic price updates
 - Cart and WhatsApp checkout include variant details (length, color, specific price)
+
+---
+Task ID: 1
+Agent: Main Agent
+Task: Create All Products page (/shop) and update navigation links
+
+Work Log:
+- Created `/src/app/shop/page.tsx` — Full-featured All Products page with:
+  - Product grid with responsive columns (2/3/4 cols)
+  - Category filtering (All, Bundles, Frontals, Closures, Wigs)
+  - Search bar with real-time filtering
+  - Sort options (Newest, Price Low-High, Price High-Low, Name A-Z, Rating, Most Popular)
+  - Product detail modal with variant selection (length/color)
+  - Cart drawer with WhatsApp checkout
+  - Wishlist drawer
+  - Write review dialog
+  - Sticky filter bar
+  - URL-based category filtering (?category=Bundles)
+  - Breadcrumb navigation
+  - Back to Home link
+  - Mobile-first design matching existing theme
+- Wrapped `useSearchParams()` in Suspense boundary for SSR compatibility
+- Updated `page.tsx`:
+  - Added `useRouter` import
+  - Changed "Shop" nav link from `#products` to `/shop`
+  - Updated Navbar to handle both hash links and route navigation via `onNavigate` prop
+  - Changed Hero "Shop Collection" CTA to link to `/shop`
+  - Changed "View All Products" button to link to `/shop`
+  - Updated footer shop links to navigate to `/shop?category=XXX`
+  - Fixed products fetch to include variants mapping
+- Build successful: all 12 pages generated
+
+Stage Summary:
+- `/shop` page created at `src/app/shop/page.tsx`
+- All navigation now properly links to the All Products page
+- Variants are correctly included in product data mapping
+- Build passes cleanly
