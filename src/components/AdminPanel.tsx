@@ -606,6 +606,7 @@ function SettingsTab() {
     { key: "instagram", label: "Instagram URL", placeholder: "https://instagram.com/lacellehair", icon: null },
     { key: "facebook", label: "Facebook URL", placeholder: "https://facebook.com/lacellehair", icon: null },
     { key: "tiktok", label: "TikTok URL", placeholder: "https://tiktok.com/@lacellehair", icon: null },
+    { key: "paystack_secret_key", label: "Paystack Secret Key", placeholder: "sk_test_xxxx or sk_live_xxxx", icon: null },
   ];
 
   return (

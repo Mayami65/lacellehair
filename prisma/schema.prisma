@@ -67,6 +67,29 @@ model Settings {
   updatedAt DateTime @updatedAt
 }
 
+model Order {
+  id            String   @id @default(cuid())
+  reference     String   @unique
+  email         String
+  fullName      String
+  phone         String
+  address       String   @default("")
+  city          String   @default("")
+  state         String   @default("")
+  country       String   @default("Ghana")
+  items         String   // JSON: [{productId, name, variantId?, length?, color?, price, quantity}]
+  subtotal      Float
+  shippingFee   Float    @default(0)
+  totalAmount   Float
+  currency      String   @default("GHS")
+  paystackRef   String   @default("")
+  status        String   @default("pending") // pending, paid, failed, shipped, delivered
+  paymentMethod String   @default("paystack")
+  paidAt        DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
 model ContactMessage {
   id        String   @id @default(cuid())
   name      String

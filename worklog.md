@@ -283,3 +283,27 @@ Stage Summary:
 - All navigation now properly links to the All Products page
 - Variants are correctly included in product data mapping
 - Build passes cleanly
+
+---
+Task ID: 2
+Agent: Main Agent
+Task: Add Paystack payment integration
+
+Work Log:
+- Added `Order` model to Prisma schema with fields: reference, email, fullName, phone, address, city, state, country, items (JSON), subtotal, shippingFee, totalAmount, currency (GHS default), paystackRef, status (pending/paid/failed/shipped/delivered), paymentMethod, paidAt
+- Ran Prisma migration: `20260523172458_add_order_model`
+- Created `/api/checkout/route.ts` (POST): Initializes Paystack transaction, creates Order record, returns authorization_url for redirect
+- Created `/api/checkout/verify/route.ts` (GET + POST): Verifies payment status via Paystack API, updates order status; POST handles Paystack webhooks
+- Created `/checkout/page.tsx`: Full checkout page with contact info form, shipping address, Paystack payment method display, order summary with totals, free shipping threshold ($200), trust badges, mobile-first design matching luxury theme
+- Created `/checkout/success/page.tsx`: Payment confirmation page with order reference, copy-to-clipboard, "what happens next" steps, success/failure states
+- Updated Cart Drawer in both page.tsx and shop/page.tsx: "Checkout" button now goes to /checkout page, added "Order via WhatsApp" as secondary option
+- Added `paystack_secret_key` field to Admin Settings panel
+- Paystack keys sourced from admin settings first, then falls back to PAYSTACK_SECRET_KEY env var
+- Build successful: 16 routes generated
+
+Stage Summary:
+- Paystack payment fully integrated with checkout flow
+- Orders are tracked in the database
+- Both Paystack and WhatsApp checkout options available
+- Admin can configure Paystack secret key from settings panel
+- Default currency: GHS (Ghana Cedi)

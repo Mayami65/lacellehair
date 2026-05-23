@@ -434,6 +434,12 @@ function CartDrawer({ open, onOpenChange, items, onUpdateQuantity, onRemove, wha
 
   const handleCheckout = () => {
     if (items.length === 0) return;
+    onOpenChange(false);
+    window.location.href = "/checkout";
+  };
+
+  const handleWhatsAppCheckout = () => {
+    if (items.length === 0) return;
     setCheckingOut(true);
     const lines = items.map((item) => {
       const price = item.variant ? item.variant.price : item.product.price;
@@ -443,7 +449,7 @@ function CartDrawer({ open, onOpenChange, items, onUpdateQuantity, onRemove, wha
     });
     const message = `Hi! I'd like to place an order:\n\n${lines.join("\n")}\n\nTotal: $${total.toFixed(2)}`;
     const encoded = encodeURIComponent(message);
-    toast.success("Redirecting to WhatsApp for checkout...");
+    toast.success("Redirecting to WhatsApp...");
     setTimeout(() => {
       window.open(`https://wa.me/${whatsappNumber}?text=${encoded}`, "_blank");
       setCheckingOut(false);
@@ -490,8 +496,11 @@ function CartDrawer({ open, onOpenChange, items, onUpdateQuantity, onRemove, wha
               <div className="border-t border-luxury-border pt-4 space-y-4">
                 <div className="flex items-center justify-between"><span className="text-muted-foreground text-sm">Subtotal</span><span className="text-xl font-bold text-gold">${total.toFixed(2)}</span></div>
                 <p className="text-xs text-muted-foreground">Shipping & taxes calculated at checkout</p>
-                <Button onClick={handleCheckout} disabled={checkingOut} className="w-full gold-gradient text-luxury-black font-semibold py-6 rounded-full text-sm hover:opacity-90 transition-all shadow-lg shadow-gold/20">
-                  {checkingOut ? "Redirecting..." : <>Checkout<ChevronRight className="w-4 h-4 ml-1" /></>}
+                <Button onClick={handleCheckout} className="w-full gold-gradient text-luxury-black font-semibold py-6 rounded-full text-sm hover:opacity-90 transition-all shadow-lg shadow-gold/20">
+                  Checkout<ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+                <Button onClick={handleWhatsAppCheckout} disabled={checkingOut} variant="outline" className="w-full border-[#25D366]/40 text-[#25D366] hover:bg-[#25D366]/10 hover:border-[#25D366] rounded-full py-3 text-sm transition-all">
+                  {checkingOut ? "Redirecting..." : <><MessageCircle className="w-4 h-4 mr-2" />Order via WhatsApp</>}
                 </Button>
                 <Button variant="link" className="w-full text-muted-foreground text-sm hover:text-gold" onClick={() => onOpenChange(false)}>Continue Shopping</Button>
               </div>
