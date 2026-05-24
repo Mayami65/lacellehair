@@ -121,6 +121,15 @@ export const db =
       })
     }
 
+    // DEBUG — remove after confirming env vars are set correctly on Render
+    console.log('[db:debug]', {
+      NODE_ENV: env('NODE_ENV'),
+      DATABASE_URL: env('DATABASE_URL') ? `${env('DATABASE_URL')!.slice(0, 20)}...` : null,
+      TURSO_AUTH_TOKEN: env('TURSO_AUTH_TOKEN') ? 'set' : 'missing',
+      url_being_used: url ? `${url.slice(0, 20)}...` : null,
+      allKeys: Object.keys(process.env).filter(k => k.includes('TURSO') || k.includes('DATABASE') || k.includes('NODE')),
+    })
+
     const client = createClient({
       url,
       authToken: hasAuthToken ? authToken : undefined,
