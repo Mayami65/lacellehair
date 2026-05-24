@@ -5,8 +5,6 @@ import { loadEnvConfig } from '@next/env'
 import { existsSync, readFileSync } from 'fs'
 import path from 'path'
 
-loadEnvConfig(process.cwd())
-
 function loadEnvFile(filePath: string) {
   if (!existsSync(filePath)) return
 
@@ -28,28 +26,38 @@ function loadEnvFile(filePath: string) {
   }
 }
 
-for (const envFile of ['.env.local', '.env.development.local', '.env.development', '.env']) {
-  loadEnvFile(path.join(process.cwd(), envFile))
+// Only load .env files in dev — production gets env vars from the platform (Render, etc.)
+if (process.env.NODE_ENV !== 'production') {
+  loadEnvConfig(process.cwd())
+
+  for (const envFile of ['.env.local', '.env.development.local', '.env.development', '.env']) {
+    loadEnvFile(path.join(process.cwd(), envFile))
+  }
 }
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
+// Read env vars via dynamic keys so Turbopack cannot inline them at build time.
+function env(key: string) {
+  return process.env[key]
+}
+
 export const db =
   globalForPrisma.prisma ??
   (() => {
-    const isBuildPhase = process.env['NEXT_PHASE'] === 'phase-production-build'
-    const isProductionRuntime = process.env.NODE_ENV === 'production' && !isBuildPhase
-    const useTursoInDev = process.env['USE_TURSO_IN_DEV'] === 'true'
+    const isBuildPhase = env('NEXT_PHASE') === 'phase-production-build'
+    const isProductionRuntime = env('NODE_ENV') === 'production' && !isBuildPhase
+    const useTursoInDev = env('USE_TURSO_IN_DEV') === 'true'
 
     if (isBuildPhase) {
-      if (process.env.NODE_ENV !== 'production')
+      if (env('NODE_ENV') !== 'production')
         console.log('[db:init]', { pid: process.pid, branch: 'buildPhase' })
       return new PrismaClient({ log: ['query'] })
     }
 
-    const rawUrl = process.env['DATABASE_URL']?.trim()
+    const rawUrl = env('DATABASE_URL')?.trim()
     const hasValidUrl =
       !!rawUrl &&
       rawUrl !== 'undefined' &&
@@ -57,7 +65,7 @@ export const db =
       !rawUrl.includes('undefined') &&
       !rawUrl.includes('null')
 
-    if (process.env.NODE_ENV !== 'production') {
+    if (env('NODE_ENV') !== 'production') {
       console.log('[db]', {
         isBuildPhase,
         isProductionRuntime,
@@ -72,7 +80,7 @@ export const db =
       const devUrl =
         hasValidUrl && rawUrl.startsWith('file:') ? rawUrl : 'file:./prisma/dev.db'
 
-      if (process.env.NODE_ENV !== 'production')
+      if (env('NODE_ENV') !== 'production')
         console.log('[db:init]', { pid: process.pid, branch: 'sqlite-dev', devUrl })
 
       return new PrismaClient({
@@ -93,7 +101,7 @@ export const db =
 
     // Use Prisma's datasource directly for non-libsql production URLs.
     if (!isLibsql) {
-      if (process.env.NODE_ENV !== 'production')
+      if (env('NODE_ENV') !== 'production')
         console.log('[db:init]', { pid: process.pid, branch: 'prisma-direct', urlPreview: `${url.slice(0, 10)}...` })
 
       return new PrismaClient({
@@ -102,9 +110,9 @@ export const db =
       })
     }
 
-    const authToken = process.env['TURSO_AUTH_TOKEN']?.trim()
+    const authToken = env('TURSO_AUTH_TOKEN')?.trim()
     const hasAuthToken = !!authToken && authToken !== 'undefined' && authToken !== 'null'
-    if (process.env.NODE_ENV !== 'production') {
+    if (env('NODE_ENV') !== 'production') {
       console.log('[db:init]', {
         pid: process.pid,
         branch: 'libsql-adapter',
@@ -125,4 +133,4 @@ export const db =
     })
   })()
 
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db
+if (env('NODE_ENV') !== 'production') globalForPrisma.prisma = db
