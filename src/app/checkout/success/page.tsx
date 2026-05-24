@@ -29,9 +29,9 @@ function SuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const reference = searchParams.get("reference") || "";
-  const [status, setStatus] = useState<"loading" | "success" | "failed">(
-    "loading",
-  );
+  const [status, setStatus] = useState<
+    "loading" | "success" | "failed" | "cancelled"
+  >("loading");
   const [copied, setCopied] = useState(false);
   const [lookupEmail, setLookupEmail] = useState("");
   const [lookupLoading, setLookupLoading] = useState(false);
@@ -56,7 +56,10 @@ function SuccessContent() {
     fetch(`/api/checkout/verify?reference=${reference}`)
       .then((r) => r.json())
       .then((data) => {
-        setStatus(data.status === "success" ? "success" : "failed");
+        if (data.status === "success") setStatus("success");
+        else if (data.status === "cancelled" || data.status === "abandoned")
+          setStatus("cancelled");
+        else setStatus("failed");
       })
       .catch(() => setStatus("failed"));
   }, [reference, router]);
@@ -114,7 +117,7 @@ function SuccessContent() {
     );
   }
 
-  if (status === "failed") {
+  if (status === "failed" || status === "cancelled") {
     return (
       <div
         className="min-h-screen flex flex-col items-center justify-center px-4"
@@ -127,11 +130,12 @@ function SuccessContent() {
           className="text-2xl font-bold text-white mb-2"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          Payment Failed
+          {status === "cancelled" ? "Payment Cancelled" : "Payment Failed"}
         </h1>
         <p className="text-muted-foreground mb-8 text-center max-w-md">
-          Unfortunately, your payment could not be completed. Your card has not
-          been charged. Please try again or contact us for support.
+          {status === "cancelled"
+            ? "Your payment was cancelled or abandoned before completion. No charge was made. You can try again when ready."
+            : "Unfortunately, your payment could not be completed. Your card has not been charged. Please try again or contact us for support."}
         </p>
         <div className="flex gap-3">
           <Button
@@ -345,6 +349,17 @@ function SuccessContent() {
               className="gold-gradient text-luxury-black font-semibold rounded-full px-8 py-3"
             >
               Continue Shopping <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+            <Button
+              onClick={() =>
+                router.push(
+                  `/track-order?reference=${encodeURIComponent(reference)}`,
+                )
+              }
+              variant="outline"
+              className="border-luxury-border text-white/70 rounded-full px-8 py-3 hover:border-gold hover:text-gold"
+            >
+              Track Order <ExternalLink className="w-4 h-4 ml-2" />
             </Button>
             <Button
               onClick={() => router.push("/")}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { cancelStalePendingOrder } from "@/lib/orderStatus";
 
 export async function GET(req: NextRequest) {
   try {
@@ -31,7 +32,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ order });
+    const updatedOrder = await cancelStalePendingOrder(reference);
+    const safeOrder = updatedOrder && "email" in updatedOrder ? updatedOrder : order;
+
+    return NextResponse.json({ order: safeOrder });
   } catch (error) {
     console.error("GET /api/orders/public error:", error);
     return NextResponse.json({ error: "Failed to look up order" }, { status: 500 });

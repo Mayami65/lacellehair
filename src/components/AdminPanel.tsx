@@ -1615,6 +1615,7 @@ function OrdersTab({ onRefresh }: { onRefresh: () => void }) {
           </SelectTrigger>
           <SelectContent className="bg-luxury-dark border-luxury-border">
             <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="cancelled">Cancelled</SelectItem>
             <SelectItem value="pending">Pending</SelectItem>
             <SelectItem value="paid">Paid</SelectItem>
             <SelectItem value="failed">Failed</SelectItem>
@@ -1802,6 +1803,7 @@ function OrdersTab({ onRefresh }: { onRefresh: () => void }) {
               </SelectTrigger>
               <SelectContent className="bg-luxury-dark border-luxury-border">
                 <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="cancelled">Cancelled</SelectItem>
                 <SelectItem value="pending">Pending</SelectItem>
                 <SelectItem value="paid">Paid</SelectItem>
                 <SelectItem value="failed">Failed</SelectItem>

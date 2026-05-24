@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { cancelStalePendingOrder } from "@/lib/orderStatus";
 
 // GET /api/checkout/verify?reference=xxx — Verify payment status
 export async function GET(request: NextRequest) {
@@ -10,6 +11,8 @@ export async function GET(request: NextRequest) {
     if (!reference) {
       return NextResponse.json({ error: "Missing reference" }, { status: 400 });
     }
+
+    await cancelStalePendingOrder(reference);
 
     // Get Paystack keys from settings
     const settings = await db.settings.findMany();
@@ -42,6 +45,13 @@ export async function GET(request: NextRequest) {
           status: "paid",
           paystackRef: transaction.reference,
           paidAt: new Date(),
+        },
+      });
+    } else if (transaction.reference && ["failed", "abandoned", "cancelled"].includes(transaction.status)) {
+      await db.order.updateMany({
+        where: { reference: transaction.reference },
+        data: {
+          status: transaction.status === "abandoned" ? "cancelled" : transaction.status,
         },
       });
     }
@@ -106,6 +116,18 @@ export async function POST(request: NextRequest) {
             status: "paid",
             paystackRef: reference,
             paidAt: new Date(),
+          },
+        });
+      }
+    } else if (body.event === "charge.failed" || body.event === "charge.abandoned") {
+      const data = body.data;
+      const reference = data.reference;
+
+      if (reference) {
+        await db.order.updateMany({
+          where: { reference },
+          data: {
+            status: body.event === "charge.abandoned" ? "cancelled" : "failed",
           },
         });
       }

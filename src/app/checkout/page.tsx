@@ -1,12 +1,27 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
-  ArrowLeft, ShoppingBag, Shield, Truck, Lock, ChevronRight,
-  CreditCard, Smartphone, Building, CheckCircle, Loader2, Crown, Heart,
-  MapPin, Phone, Mail, User, Package,
+  ArrowLeft,
+  ShoppingBag,
+  Shield,
+  Truck,
+  Lock,
+  ChevronRight,
+  CreditCard,
+  Smartphone,
+  Building,
+  CheckCircle,
+  Loader2,
+  Crown,
+  Heart,
+  MapPin,
+  Phone,
+  Mail,
+  User,
+  Package,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,7 +62,10 @@ interface CartItem {
 
 function LoadingFallback() {
   return (
-    <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: "#0A0A0A" }}>
+    <div
+      className="min-h-screen flex items-center justify-center"
+      style={{ backgroundColor: "#0A0A0A" }}
+    >
       <div className="w-10 h-10 border-2 border-gold border-t-transparent rounded-full animate-spin" />
     </div>
   );
@@ -86,13 +104,17 @@ function CheckoutContent() {
   const shippingFee = subtotal >= SHIPPING_THRESHOLD ? 0 : SHIPPING_FEE;
   const total = subtotal + shippingFee;
 
-  useState(() => {
-    try {
-      const saved = localStorage.getItem("lacelle-cart");
-      if (saved) setCart(JSON.parse(saved));
-    } catch {}
-    setMounted(true);
-  });
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        const saved = localStorage.getItem("lacelle-cart");
+        if (saved) setCart(JSON.parse(saved));
+      } catch {}
+      setMounted(true);
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
@@ -153,7 +175,7 @@ function CheckoutContent() {
       if (data.authorization_url) {
         // Redirect to Paystack payment page
         localStorage.removeItem("lacelle-cart");
-        window.location.href = data.authorization_url;
+        window.location.assign(data.authorization_url);
       } else {
         toast.error("Failed to initialize payment");
         setProcessing(false);
@@ -168,11 +190,24 @@ function CheckoutContent() {
 
   if (cart.length === 0) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ backgroundColor: "#0A0A0A" }}>
+      <div
+        className="min-h-screen flex flex-col items-center justify-center px-4"
+        style={{ backgroundColor: "#0A0A0A" }}
+      >
         <ShoppingBag className="w-20 h-20 text-luxury-border mb-6" />
-        <h2 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: "var(--font-display)" }}>Your cart is empty</h2>
-        <p className="text-muted-foreground mb-8 text-center">Add some luxurious hair products to your cart before checking out.</p>
-        <button onClick={() => router.push("/shop")} className="gold-gradient text-luxury-black font-semibold rounded-full px-8 py-3 hover:opacity-90 transition-all">
+        <h2
+          className="text-2xl font-bold text-white mb-2"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          Your cart is empty
+        </h2>
+        <p className="text-muted-foreground mb-8 text-center">
+          Add some luxurious hair products to your cart before checking out.
+        </p>
+        <button
+          onClick={() => router.push("/shop")}
+          className="gold-gradient text-luxury-black font-semibold rounded-full px-8 py-3 hover:opacity-90 transition-all"
+        >
           Continue Shopping
         </button>
       </div>
@@ -194,15 +229,24 @@ function CheckoutContent() {
       <nav className="sticky top-0 z-50 bg-luxury-black/95 backdrop-blur-md border-b border-luxury-border">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <button onClick={() => router.push("/shop")} className="flex items-center gap-2 text-sm text-white/60 hover:text-gold transition-colors">
+            <button
+              onClick={() => router.push("/shop")}
+              className="flex items-center gap-2 text-sm text-white/60 hover:text-gold transition-colors"
+            >
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Back to Shop</span>
             </button>
-            <button onClick={() => router.push("/")} className="flex items-center gap-2">
+            <button
+              onClick={() => router.push("/")}
+              className="flex items-center gap-2"
+            >
               <div className="w-8 h-8 rounded-full bg-gradient-to-r from-yellow-500 to-yellow-600 flex items-center justify-center">
                 <Crown className="w-4 h-4 text-luxury-black" />
               </div>
-              <span className="text-lg font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>
+              <span
+                className="text-lg font-bold text-white"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
                 LACELLE <span className="pink-shimmer">HAIR</span>
               </span>
             </button>
@@ -217,9 +261,19 @@ function CheckoutContent() {
       {/* Breadcrumb */}
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <button onClick={() => router.push("/")} className="hover:text-gold transition-colors">Home</button>
+          <button
+            onClick={() => router.push("/")}
+            className="hover:text-gold transition-colors"
+          >
+            Home
+          </button>
           <ChevronRight className="w-3 h-3" />
-          <button onClick={() => router.push("/shop")} className="hover:text-gold transition-colors">Shop</button>
+          <button
+            onClick={() => router.push("/shop")}
+            className="hover:text-gold transition-colors"
+          >
+            Shop
+          </button>
           <ChevronRight className="w-3 h-3" />
           <span className="text-white">Checkout</span>
         </div>
@@ -255,7 +309,9 @@ function CheckoutContent() {
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
-                    <label className="text-sm text-white/70 mb-1.5 block">Full Name *</label>
+                    <label className="text-sm text-white/70 mb-1.5 block">
+                      Full Name *
+                    </label>
                     <div className="relative">
                       <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                       <Input
@@ -269,7 +325,9 @@ function CheckoutContent() {
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm text-white/70 mb-1.5 block">Email Address *</label>
+                    <label className="text-sm text-white/70 mb-1.5 block">
+                      Email Address *
+                    </label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                       <Input
@@ -283,7 +341,9 @@ function CheckoutContent() {
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm text-white/70 mb-1.5 block">Phone Number *</label>
+                    <label className="text-sm text-white/70 mb-1.5 block">
+                      Phone Number *
+                    </label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                       <Input
@@ -313,7 +373,9 @@ function CheckoutContent() {
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
-                    <label className="text-sm text-white/70 mb-1.5 block">Street Address</label>
+                    <label className="text-sm text-white/70 mb-1.5 block">
+                      Street Address
+                    </label>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-3 w-4 h-4 text-white/30" />
                       <Input
@@ -326,7 +388,9 @@ function CheckoutContent() {
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm text-white/70 mb-1.5 block">City</label>
+                    <label className="text-sm text-white/70 mb-1.5 block">
+                      City
+                    </label>
                     <Input
                       type="text"
                       placeholder="Accra"
@@ -336,7 +400,9 @@ function CheckoutContent() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-white/70 mb-1.5 block">Region / State</label>
+                    <label className="text-sm text-white/70 mb-1.5 block">
+                      Region / State
+                    </label>
                     <Input
                       type="text"
                       placeholder="Greater Accra"
@@ -346,20 +412,38 @@ function CheckoutContent() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-white/70 mb-1.5 block">Country</label>
+                    <label className="text-sm text-white/70 mb-1.5 block">
+                      Country
+                    </label>
                     <select
                       value={country}
                       onChange={(e) => setCountry(e.target.value)}
                       className="w-full bg-luxury-gray border border-luxury-border rounded-xl h-12 px-3 text-white outline-none focus:border-gold/50 transition-colors cursor-pointer"
                     >
-                      <option value="Ghana" className="bg-luxury-dark">Ghana</option>
-                      <option value="Nigeria" className="bg-luxury-dark">Nigeria</option>
-                      <option value="Kenya" className="bg-luxury-dark">Kenya</option>
-                      <option value="South Africa" className="bg-luxury-dark">South Africa</option>
-                      <option value="United States" className="bg-luxury-dark">United States</option>
-                      <option value="United Kingdom" className="bg-luxury-dark">United Kingdom</option>
-                      <option value="Canada" className="bg-luxury-dark">Canada</option>
-                      <option value="Other" className="bg-luxury-dark">Other</option>
+                      <option value="Ghana" className="bg-luxury-dark">
+                        Ghana
+                      </option>
+                      <option value="Nigeria" className="bg-luxury-dark">
+                        Nigeria
+                      </option>
+                      <option value="Kenya" className="bg-luxury-dark">
+                        Kenya
+                      </option>
+                      <option value="South Africa" className="bg-luxury-dark">
+                        South Africa
+                      </option>
+                      <option value="United States" className="bg-luxury-dark">
+                        United States
+                      </option>
+                      <option value="United Kingdom" className="bg-luxury-dark">
+                        United Kingdom
+                      </option>
+                      <option value="Canada" className="bg-luxury-dark">
+                        Canada
+                      </option>
+                      <option value="Other" className="bg-luxury-dark">
+                        Other
+                      </option>
                     </select>
                   </div>
                 </div>
@@ -382,14 +466,26 @@ function CheckoutContent() {
                     <Lock className="w-6 h-6 text-gold" />
                   </div>
                   <div className="flex-1">
-                    <p className="text-white font-semibold text-sm">Pay with Paystack</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">Mobile Money, Visa, Mastercard, Bank Transfer</p>
+                    <p className="text-white font-semibold text-sm">
+                      Pay with Paystack
+                    </p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      Mobile Money, Visa, Mastercard, Bank Transfer
+                    </p>
                   </div>
                   <div className="flex gap-1.5">
-                    <div className="px-2 py-1 rounded bg-luxury-gray border border-luxury-border text-[10px] text-white/60">MTN</div>
-                    <div className="px-2 py-1 rounded bg-luxury-gray border border-luxury-border text-[10px] text-white/60">Voda</div>
-                    <div className="px-2 py-1 rounded bg-luxury-gray border border-luxury-border text-[10px] text-white/60">Visa</div>
-                    <div className="hidden sm:block px-2 py-1 rounded bg-luxury-gray border border-luxury-border text-[10px] text-white/60">MC</div>
+                    <div className="px-2 py-1 rounded bg-luxury-gray border border-luxury-border text-[10px] text-white/60">
+                      MTN
+                    </div>
+                    <div className="px-2 py-1 rounded bg-luxury-gray border border-luxury-border text-[10px] text-white/60">
+                      Voda
+                    </div>
+                    <div className="px-2 py-1 rounded bg-luxury-gray border border-luxury-border text-[10px] text-white/60">
+                      Visa
+                    </div>
+                    <div className="hidden sm:block px-2 py-1 rounded bg-luxury-gray border border-luxury-border text-[10px] text-white/60">
+                      MC
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 mt-4 text-xs text-muted-foreground">
@@ -411,30 +507,56 @@ function CheckoutContent() {
                 <h2 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
                   <Package className="w-5 h-5 text-pink" />
                   Order Summary
-                  <Badge className="bg-pink text-white border-0 text-xs ml-auto">{cartCount} item{cartCount !== 1 ? "s" : ""}</Badge>
+                  <Badge className="bg-pink text-white border-0 text-xs ml-auto">
+                    {cartCount} item{cartCount !== 1 ? "s" : ""}
+                  </Badge>
                 </h2>
 
                 {/* Items */}
                 <div className="space-y-4 mb-6 max-h-72 overflow-y-auto pr-1">
                   {cart.map((item) => {
-                    const price = item.variant ? item.variant.price : item.product.price;
+                    const price = item.variant
+                      ? item.variant.price
+                      : item.product.price;
                     return (
                       <div key={item.id} className="flex gap-3">
                         <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 bg-luxury-gray">
-                          <img src={item.product.image} alt={item.product.name} className="w-full h-full object-cover" />
+                          <img
+                            src={item.product.image}
+                            alt={item.product.name}
+                            className="w-full h-full object-cover"
+                          />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm text-white font-medium truncate">{item.product.name}</p>
+                          <p className="text-sm text-white font-medium truncate">
+                            {item.product.name}
+                          </p>
                           {item.variant && (
                             <div className="flex gap-1 mt-0.5">
-                              {item.variant.length && <span className="text-[10px] text-gold">{item.variant.length}</span>}
-                              {item.variant.length && item.variant.color && <span className="text-[10px] text-white/30">/</span>}
-                              {item.variant.color && <span className="text-[10px] text-pink">{item.variant.color}</span>}
+                              {item.variant.length && (
+                                <span className="text-[10px] text-gold">
+                                  {item.variant.length}
+                                </span>
+                              )}
+                              {item.variant.length && item.variant.color && (
+                                <span className="text-[10px] text-white/30">
+                                  /
+                                </span>
+                              )}
+                              {item.variant.color && (
+                                <span className="text-[10px] text-pink">
+                                  {item.variant.color}
+                                </span>
+                              )}
                             </div>
                           )}
-                          <p className="text-xs text-muted-foreground">Qty: {item.quantity}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Qty: {item.quantity}
+                          </p>
                         </div>
-                        <p className="text-sm font-bold text-gold flex-shrink-0">${(price * item.quantity).toFixed(2)}</p>
+                        <p className="text-sm font-bold text-gold flex-shrink-0">
+                          ${(price * item.quantity).toFixed(2)}
+                        </p>
                       </div>
                     );
                   })}
@@ -450,8 +572,16 @@ function CheckoutContent() {
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Shipping</span>
-                    <span className={shippingFee === 0 ? "text-green-400 font-medium" : "text-white"}>
-                      {shippingFee === 0 ? "FREE" : `$${shippingFee.toFixed(2)}`}
+                    <span
+                      className={
+                        shippingFee === 0
+                          ? "text-green-400 font-medium"
+                          : "text-white"
+                      }
+                    >
+                      {shippingFee === 0
+                        ? "FREE"
+                        : `$${shippingFee.toFixed(2)}`}
                     </span>
                   </div>
                   {shippingFee > 0 && (
@@ -463,7 +593,9 @@ function CheckoutContent() {
                   <Separator className="bg-luxury-border" />
                   <div className="flex justify-between">
                     <span className="text-white font-semibold">Total</span>
-                    <span className="text-xl font-bold text-gold">${total.toFixed(2)}</span>
+                    <span className="text-xl font-bold text-gold">
+                      ${total.toFixed(2)}
+                    </span>
                   </div>
                 </div>
 
@@ -473,9 +605,15 @@ function CheckoutContent() {
                   className="w-full mt-6 py-4 rounded-xl text-sm font-bold transition-all gold-gradient text-luxury-black hover:opacity-90 shadow-lg shadow-gold/20 disabled:opacity-50"
                 >
                   {processing ? (
-                    <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Processing...</>
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
                   ) : (
-                    <><Lock className="w-4 h-4 mr-2" />Pay ${total.toFixed(2)}</>
+                    <>
+                      <Lock className="w-4 h-4 mr-2" />
+                      Pay ${total.toFixed(2)}
+                    </>
                   )}
                 </Button>
 
@@ -483,15 +621,21 @@ function CheckoutContent() {
                 <div className="grid grid-cols-3 gap-2 mt-5">
                   <div className="text-center p-2 rounded-lg bg-luxury-gray/50">
                     <Shield className="w-4 h-4 text-green-400 mx-auto mb-1" />
-                    <p className="text-[10px] text-muted-foreground">SSL Secure</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      SSL Secure
+                    </p>
                   </div>
                   <div className="text-center p-2 rounded-lg bg-luxury-gray/50">
                     <Truck className="w-4 h-4 text-gold mx-auto mb-1" />
-                    <p className="text-[10px] text-muted-foreground">Fast Delivery</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Fast Delivery
+                    </p>
                   </div>
                   <div className="text-center p-2 rounded-lg bg-luxury-gray/50">
                     <CheckCircle className="w-4 h-4 text-pink mx-auto mb-1" />
-                    <p className="text-[10px] text-muted-foreground">Quality Guarantee</p>
+                    <p className="text-[10px] text-muted-foreground">
+                      Quality Guarantee
+                    </p>
                   </div>
                 </div>
               </motion.div>
