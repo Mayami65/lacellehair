@@ -39,9 +39,9 @@ const globalForPrisma = globalThis as unknown as {
 export const db =
   globalForPrisma.prisma ??
   (() => {
-    const isBuildPhase = process.env.NEXT_PHASE === 'phase-production-build'
+    const isBuildPhase = process.env['NEXT_PHASE'] === 'phase-production-build'
     const isProductionRuntime = process.env.NODE_ENV === 'production' && !isBuildPhase
-    const useTursoInDev = process.env.USE_TURSO_IN_DEV === 'true'
+    const useTursoInDev = process.env['USE_TURSO_IN_DEV'] === 'true'
 
     if (isBuildPhase) {
       if (process.env.NODE_ENV !== 'production')
@@ -49,7 +49,7 @@ export const db =
       return new PrismaClient({ log: ['query'] })
     }
 
-    const rawUrl = process.env.DATABASE_URL?.trim()
+    const rawUrl = process.env['DATABASE_URL']?.trim()
     const hasValidUrl =
       !!rawUrl &&
       rawUrl !== 'undefined' &&
@@ -102,7 +102,7 @@ export const db =
       })
     }
 
-    const authToken = process.env.TURSO_AUTH_TOKEN?.trim()
+    const authToken = process.env['TURSO_AUTH_TOKEN']?.trim()
     const hasAuthToken = !!authToken && authToken !== 'undefined' && authToken !== 'null'
     if (process.env.NODE_ENV !== 'production') {
       console.log('[db:init]', {
