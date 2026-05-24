@@ -2004,7 +2004,10 @@ function OrdersTab({ onRefresh }: { onRefresh: () => void }) {
                   <Button
                     size="sm"
                     className="gold-gradient"
-                    onClick={() => updateStatus(o.id, "shipped")}
+                    onClick={() => {
+                      setTrackingInput(o.trackingNumber || "");
+                      setSelected(o);
+                    }}
                   >
                     Mark Shipped
                   </Button>
@@ -2087,7 +2090,7 @@ function OrdersTab({ onRefresh }: { onRefresh: () => void }) {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                 <div className="col-span-2">
                   <label className="text-xs text-white/80 mb-1 block">
-                    Tracking Number (optional)
+                    Tracking Number (required for shipping)
                   </label>
                   <Input
                     value={trackingInput}
@@ -2101,6 +2104,7 @@ function OrdersTab({ onRefresh }: { onRefresh: () => void }) {
                       updateStatus(selected.id, "shipped", trackingInput)
                     }
                     className="gold-gradient"
+                    disabled={!trackingInput.trim()}
                   >
                     Mark Shipped
                   </Button>

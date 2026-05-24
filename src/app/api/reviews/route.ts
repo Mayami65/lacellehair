@@ -2,6 +2,23 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { validateToken } from "@/lib/adminAuth";
 
+async function recalcProductRating(productId: string) {
+  const approved = await db.review.findMany({
+    where: { productId, approved: true },
+  });
+  const avg =
+    approved.length > 0
+      ? approved.reduce((s, r) => s + r.rating, 0) / approved.length
+      : 0;
+  await db.product.update({
+    where: { id: productId },
+    data: {
+      rating: Math.round(avg * 10) / 10,
+      reviewCount: approved.length,
+    },
+  });
+}
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
@@ -44,6 +61,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Require a paid order matching the reviewer's email and product
+    if (body.email) {
+      const orders = await db.order.findMany({
+        where: {
+          email: body.email.toLowerCase().trim(),
+          status: { in: ["paid", "shipped", "delivered"] },
+        },
+        select: { items: true },
+      });
+
+      const hasPurchased = orders.some((o) => {
+        try {
+          const items = JSON.parse(o.items);
+          return items.some(
+            (item: any) => item.productId === body.productId
+          );
+        } catch {
+          return false;
+        }
+      });
+
+      if (!hasPurchased) {
+        return NextResponse.json(
+          { error: "You can only review products you have purchased." },
+          { status: 403 }
+        );
+      }
+    }
+
     const review = await db.review.create({
       data: {
         productId: body.productId,
@@ -52,25 +98,14 @@ export async function POST(request: NextRequest) {
         rating: Number(body.rating),
         title: body.title || "",
         text: body.text,
-        verified: Boolean(body.verified),
       },
+      // approved defaults to false — admin must approve before public visibility
     });
 
-    // Update product rating average
-    const allReviews = await db.review.findMany({
-      where: { productId: body.productId, approved: true },
-    });
-    const avgRating = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
-
-    await db.product.update({
-      where: { id: body.productId },
-      data: {
-        rating: Math.round(avgRating * 10) / 10,
-        reviewCount: allReviews.length,
-      },
-    });
-
-    return NextResponse.json(review, { status: 201 });
+    return NextResponse.json(
+      { message: "Review submitted for approval.", review },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("POST /api/reviews error:", error);
     return NextResponse.json({ error: "Failed to submit review" }, { status: 500 });
@@ -96,6 +131,9 @@ export async function PUT(request: NextRequest) {
       data: { approved },
     });
 
+    // Recalculate product rating when approval status changes
+    await recalcProductRating(review.productId);
+
     return NextResponse.json(review);
   } catch (error) {
     console.error("PUT /api/reviews error:", error);
@@ -119,18 +157,8 @@ export async function DELETE(request: NextRequest) {
 
     const review = await db.review.delete({ where: { id } });
 
-    // Recalculate product rating
     if (review.productId) {
-      const remaining = await db.review.findMany({
-        where: { productId: review.productId, approved: true },
-      });
-      const avg = remaining.length > 0
-        ? remaining.reduce((s, r) => s + r.rating, 0) / remaining.length
-        : 0;
-      await db.product.update({
-        where: { id: review.productId },
-        data: { rating: Math.round(avg * 10) / 10, reviewCount: remaining.length },
-      });
+      await recalcProductRating(review.productId);
     }
 
     return NextResponse.json({ success: true });

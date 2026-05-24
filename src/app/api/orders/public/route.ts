@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     const order = await db.order.findFirst({
       where: {
         reference,
-        email: { equals: email, mode: "insensitive" },
+        email,
       },
       select: {
         reference: true,
