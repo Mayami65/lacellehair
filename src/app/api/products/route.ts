@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { validateToken } from "@/lib/adminAuth";
 
 export async function GET(request: NextRequest) {
   try {
@@ -36,6 +37,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const cookie = request.headers.get("cookie") || "";
+    const m = cookie.match(/lacelle_admin_token=([^;]+)/);
+    const token = m ? m[1] : undefined;
+    if (!validateToken(token)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
     const body = await request.json();
 
     const product = await db.product.create({
@@ -68,6 +74,11 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
+    const cookie = request.headers.get("cookie") || "";
+    const m = cookie.match(/lacelle_admin_token=([^;]+)/);
+    const token = m ? m[1] : undefined;
+    if (!validateToken(token)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
     const body = await request.json();
     const { id, ...data } = body;
 
@@ -107,6 +118,11 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const cookie = request.headers.get("cookie") || "";
+    const m = cookie.match(/lacelle_admin_token=([^;]+)/);
+    const token = m ? m[1] : undefined;
+    if (!validateToken(token)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 

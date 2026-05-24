@@ -62,7 +62,37 @@ export async function GET(request: NextRequest) {
 // POST /api/checkout/verify — Paystack webhook handler
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Read raw body to verify Paystack signature
+    const rawBody = await request.text();
+    const signature = request.headers.get("x-paystack-signature") || "";
+
+    // Get Paystack keys from settings or env
+    const settings = await db.settings.findMany();
+    const settingsMap: Record<string, string> = {};
+    for (const s of settings) settingsMap[s.key] = s.value;
+    const secretKey = settingsMap.paystack_secret_key || process.env.PAYSTACK_SECRET_KEY || "";
+
+    // If no secret key, accept but do not process (log)
+    if (!secretKey) {
+      console.warn("Paystack webhook received but no secret key configured");
+      return NextResponse.json({ received: true });
+    }
+
+    // Verify signature (HMAC SHA512 of raw body)
+    try {
+      const crypto = await import("crypto");
+      const expected = crypto.createHmac("sha512", secretKey).update(rawBody).digest("hex");
+
+      if (signature && signature !== expected) {
+        console.warn("Invalid Paystack webhook signature");
+        return NextResponse.json({ received: true });
+      }
+    } catch (err) {
+      console.warn("Failed to verify Paystack signature", err);
+      return NextResponse.json({ received: true });
+    }
+
+    const body = JSON.parse(rawBody);
 
     // Paystack webhook sends the event data
     if (body.event === "charge.success") {

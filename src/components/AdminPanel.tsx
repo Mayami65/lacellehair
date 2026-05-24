@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import DateRangePicker from "@/components/ui/date-range-picker";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
@@ -99,6 +100,25 @@ interface ContactMsg {
   createdAt: string;
 }
 
+interface Order {
+  id: string;
+  reference: string;
+  email: string;
+  fullName: string;
+  phone: string;
+  address: string;
+  trackingNumber?: string | null;
+  items: string;
+  subtotal: number;
+  shippingFee: number;
+  totalAmount: number;
+  currency: string;
+  status: string;
+  paymentMethod: string;
+  paidAt?: string | null;
+  createdAt: string;
+}
+
 const ADMIN_PASSWORD = "LACELLE2024";
 
 /* ─────────── Login Screen ─────────── */
@@ -108,13 +128,20 @@ function AdminLogin({ onLogin }: { onLogin: () => void }) {
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      localStorage.setItem("lacelle_admin", "true");
-      onLogin();
-    } else {
-      setError("Invalid password");
-      setPassword("");
-    }
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ password }) });
+        if (res.ok) {
+          localStorage.setItem("lacelle_admin", "true");
+          onLogin();
+        } else {
+          setError("Invalid password");
+          setPassword("");
+        }
+      } catch {
+        setError("Network error");
+      }
+    })();
   };
 
   return (
@@ -217,12 +244,22 @@ function VariantsManager({ productId }: { productId: string }) {
     try {
       const res = await fetch(`/api/variants?productId=${productId}`);
       const data = await res.json();
-      setVariants(Array.isArray(data) ? data : []);
-    } catch {}
-    setLoading(false);
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
   }, [productId]);
 
-  useEffect(() => { fetchVariants(); }, [fetchVariants]);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const data = await fetchVariants();
+      if (!mounted) return;
+      setVariants(data);
+      setLoading(false);
+    })();
+    return () => { mounted = false; };
+  }, [fetchVariants]);
 
   const openNew = () => {
     setVForm({ length: "", color: "", price: 0, originalPrice: "", stock: 50, sku: "" });
@@ -364,16 +401,57 @@ function ProductsTab({ products, onRefresh }: { products: Product[]; onRefresh: 
     setForm({ ...p });
   };
 
+  const closeProductDialog = () => {
+    setEditProduct(null);
+    setIsNew(false);
+    setForm({});
+  };
+
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Try signed Cloudinary upload first
+    try {
+      const signRes = await fetch("/api/cloudinary/sign", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ folder: "hair/uploads" }) });
+      if (signRes.ok) {
+        const { signature, timestamp, api_key, cloud_name } = await signRes.json();
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("api_key", api_key);
+        fd.append("timestamp", String(timestamp));
+        fd.append("signature", signature);
+        fd.append("folder", "hair/uploads");
+        const upRes = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`, { method: "POST", body: fd });
+        const json = await upRes.json();
+        if (json.secure_url) {
+          const imageObj = { url: json.secure_url, public_id: json.public_id };
+          // If editing an existing product, append image on the server immediately
+          if (editProduct && editProduct.id) {
+            try {
+              await fetch("/api/products/images", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ productId: editProduct.id, url: imageObj.url, public_id: imageObj.public_id }) });
+              // refresh product list
+              onRefresh();
+            } catch (err) {
+              console.warn("Failed to append image to product:", err);
+            }
+          }
+          setForm((f) => ({ ...f, image: json.secure_url, images: [{ url: json.secure_url, public_id: json.public_id }] }));
+          toast.success("Image uploaded");
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn("Signed upload failed, falling back:", err);
+    }
+
+    // Fallback to local /api/upload (or unsigned Cloudinary if configured)
     const fd = new FormData();
     fd.append("file", file);
     try {
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       const data = await res.json();
       if (data.url) {
-        setForm((f) => ({ ...f, image: data.url }));
+        setForm((f) => ({ ...f, image: data.url, images: [{ url: data.url, public_id: data.public_id || null }] }));
         toast.success("Image uploaded");
       }
     } catch { toast.error("Upload failed"); }
@@ -383,12 +461,42 @@ function ProductsTab({ products, onRefresh }: { products: Product[]; onRefresh: 
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
     if (!file) return;
+    // Try signed Cloudinary upload first
+    try {
+      const signRes = await fetch("/api/cloudinary/sign", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ folder: "hair/uploads" }) });
+      if (signRes.ok) {
+        const { signature, timestamp, api_key, cloud_name } = await signRes.json();
+        const fd = new FormData();
+        fd.append("file", file);
+        fd.append("api_key", api_key);
+        fd.append("timestamp", String(timestamp));
+        fd.append("signature", signature);
+        fd.append("folder", "hair/uploads");
+        const upRes = await fetch(`https://api.cloudinary.com/v1_1/${cloud_name}/image/upload`, { method: "POST", body: fd });
+        const json = await upRes.json();
+        if (json.secure_url) {
+          const imageObj = { url: json.secure_url, public_id: json.public_id };
+          if (editProduct && editProduct.id) {
+            try {
+              await fetch("/api/products/images", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ productId: editProduct.id, url: imageObj.url, public_id: imageObj.public_id }) });
+              onRefresh();
+            } catch (err) { console.warn("Failed to append image to product:", err); }
+          }
+          setForm((f) => ({ ...f, image: json.secure_url, images: [{ url: json.secure_url, public_id: json.public_id }] }));
+          toast.success("Image uploaded");
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn("Signed upload failed, falling back:", err);
+    }
+
     const fd = new FormData();
     fd.append("file", file);
     try {
       const res = await fetch("/api/upload", { method: "POST", body: fd });
       const data = await res.json();
-      if (data.url) { setForm((f) => ({ ...f, image: data.url })); toast.success("Image uploaded"); }
+      if (data.url) { setForm((f) => ({ ...f, image: data.url, images: [{ url: data.url, public_id: data.public_id || null }] })); toast.success("Image uploaded"); }
     } catch { toast.error("Upload failed"); }
   };
 
@@ -399,7 +507,11 @@ function ProductsTab({ products, onRefresh }: { products: Product[]; onRefresh: 
       const method = isNew ? "POST" : "PUT";
       const body = isNew ? form : { id: editProduct?.id, ...form };
       const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-      if (res.ok) { toast.success(isNew ? "Product created" : "Product updated"); setEditProduct(null); onRefresh(); }
+      if (res.ok) {
+        toast.success(isNew ? "Product created" : "Product updated");
+        closeProductDialog();
+        onRefresh();
+      }
       else toast.error("Failed to save");
     } catch { toast.error("Network error"); }
     setSaving(false);
@@ -458,7 +570,7 @@ function ProductsTab({ products, onRefresh }: { products: Product[]; onRefresh: 
       </div>
 
       {/* Edit Dialog */}
-      <Dialog open={editProduct !== null || isNew} onOpenChange={() => { setEditProduct(null); setIsNew(false); }}>
+      <Dialog open={editProduct !== null || isNew} onOpenChange={(open) => { if (!open) closeProductDialog(); }}>
         <DialogContent className="bg-luxury-dark border-luxury-border max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-white">{isNew ? "Add Product" : "Edit Product"}</DialogTitle>
@@ -492,7 +604,7 @@ function ProductsTab({ products, onRefresh }: { products: Product[]; onRefresh: 
             </div>
             <div className="flex gap-3 pt-2">
               <Button onClick={handleSave} disabled={saving || !form.name || !form.price} className="flex-1 gold-gradient text-luxury-black font-semibold rounded-full py-3">{saving ? "Saving..." : isNew ? "Create Product" : "Save Changes"}</Button>
-              <Button variant="outline" onClick={() => { setEditProduct(null); setIsNew(false); }} className="border-luxury-border text-white/70 rounded-full">Cancel</Button>
+              <Button variant="outline" onClick={closeProductDialog} className="border-luxury-border text-white/70 rounded-full">Cancel</Button>
             </div>
             {/* Variant Prices - only show for existing products */}
             {!isNew && editProduct && (
@@ -516,12 +628,20 @@ function ReviewsTab({ onRefresh }: { onRefresh: () => void }) {
     try {
       const res = await fetch("/api/reviews?limit=100");
       const data = await res.json();
-      setReviews(data.reviews || []);
-    } catch {}
-    setLoading(false);
+      return data.reviews || [];
+    } catch { return []; }
   }, []);
 
-  useEffect(() => { fetchReviews(); }, [fetchReviews]);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const data = await fetchReviews();
+      if (!mounted) return;
+      setReviews(data);
+      setLoading(false);
+    })();
+    return () => { mounted = false; };
+  }, [fetchReviews]);
 
   const handleApprove = async (id: string, approved: boolean) => {
     try {
@@ -628,6 +748,286 @@ function SettingsTab() {
   );
 }
 
+/* ─────────── Orders Tab ─────────── */
+function OrdersTab({ onRefresh }: { onRefresh: () => void }) {
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<Order | null>(null);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [query, setQuery] = useState("");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [total, setTotal] = useState(0);
+  const [trackingInput, setTrackingInput] = useState("");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+
+  const formatDate = (date: Date) => date.toISOString().slice(0, 10);
+
+  const applyPreset = (preset: "today" | "7d" | "30d") => {
+    const today = new Date();
+    const end = formatDate(today);
+    const start = new Date(today);
+    if (preset === "today") {
+      setFromDate(end);
+      setToDate(end);
+    } else {
+      start.setDate(today.getDate() - (preset === "7d" ? 6 : 29));
+      setFromDate(formatDate(start));
+      setToDate(end);
+    }
+    setPage(1);
+  };
+
+  const fetchOrders = useCallback(async (p = page, l = limit, q = query, from = fromDate, to = toDate, status = statusFilter) => {
+    try {
+      const qs = [`page=${p}`, `limit=${l}`];
+      if (q) qs.push(`q=${encodeURIComponent(q)}`);
+      if (from) qs.push(`from=${encodeURIComponent(from)}`);
+      if (to) qs.push(`to=${encodeURIComponent(to)}`);
+      if (status && status !== "all") qs.push(`status=${encodeURIComponent(status)}`);
+      const res = await fetch(`/api/orders?${qs.join("&")}`);
+      const data = await res.json();
+      return data || { orders: [], total: 0 };
+    } catch { return { orders: [], total: 0 }; }
+  }, [page, limit, query, fromDate, toDate, statusFilter]);
+
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      setLoading(true);
+      const data = await fetchOrders(page, limit, query, fromDate, toDate, statusFilter);
+      if (!mounted) return;
+      setOrders(data.orders || []);
+      setTotal(data.total || 0);
+      setLoading(false);
+    })();
+    return () => { mounted = false; };
+  }, [fetchOrders, page, limit, query, fromDate, toDate, statusFilter]);
+
+  const updateStatus = async (id: string, status: string, trackingNumber?: string) => {
+    try {
+      const payload: any = { id, status };
+      if (trackingNumber) payload.trackingNumber = trackingNumber;
+      const res = await fetch("/api/orders", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      if (res.ok) { toast.success("Order updated"); const updated = await res.json(); setOrders((s) => s.map((o) => o.id === updated.id ? updated : o)); onRefresh(); }
+      else toast.error("Failed to update");
+    } catch { toast.error("Network error"); }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold text-white">Orders</h2>
+      </div>
+
+      <div className="hidden md:flex flex-wrap items-center gap-3">
+        <Input placeholder="Search by email, name or reference" value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} className="max-w-sm" />
+        <DateRangePicker
+          value={{ from: fromDate || null, to: toDate || null }}
+          onChange={({ from, to }) => {
+            setFromDate(from || "")
+            setToDate(to || "")
+            setPage(1)
+          }}
+          className="max-w-lg"
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Button size="sm" variant="outline" className="border-luxury-border text-white/80 hover:text-white" onClick={() => applyPreset("today")}>Today</Button>
+          <Button size="sm" variant="outline" className="border-luxury-border text-white/80 hover:text-white" onClick={() => applyPreset("7d")}>Last 7 Days</Button>
+          <Button size="sm" variant="outline" className="border-luxury-border text-white/80 hover:text-white" onClick={() => applyPreset("30d")}>Last 30 Days</Button>
+        </div>
+        <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>
+          <SelectTrigger className="w-40"><SelectValue placeholder="Status" /></SelectTrigger>
+          <SelectContent className="bg-luxury-dark border-luxury-border">
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="paid">Paid</SelectItem>
+            <SelectItem value="failed">Failed</SelectItem>
+            <SelectItem value="shipped">Shipped</SelectItem>
+            <SelectItem value="delivered">Delivered</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={String(limit)} onValueChange={(v) => { setLimit(Number(v)); setPage(1); }}>
+          <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+          <SelectContent className="bg-luxury-dark border-luxury-border"><SelectItem value="10">10</SelectItem><SelectItem value="20">20</SelectItem><SelectItem value="50">50</SelectItem></SelectContent>
+        </Select>
+        <Button
+          size="sm"
+          variant="outline"
+          className="border-luxury-border text-white/80 hover:text-white"
+          onClick={() => {
+            setQuery("")
+            setFromDate("")
+            setToDate("")
+            setStatusFilter("all")
+            setLimit(20)
+            setPage(1)
+          }}
+        >
+          Clear Filters
+        </Button>
+        <Button size="sm" className="ml-auto" onClick={async () => {
+          const qs = [`format=csv`, `limit=${limit}`, `page=${page}`];
+          if (query) qs.push(`q=${encodeURIComponent(query)}`);
+          if (fromDate) qs.push(`from=${encodeURIComponent(fromDate)}`);
+          if (toDate) qs.push(`to=${encodeURIComponent(toDate)}`);
+          if (statusFilter && statusFilter !== "all") qs.push(`status=${encodeURIComponent(statusFilter)}`);
+          const res = await fetch(`/api/orders?${qs.join("&")}`);
+          if (!res.ok) { toast.error("Export failed"); return; }
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "orders.csv";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        }}>Export CSV</Button>
+      </div>
+
+      {/* Mobile: compact Filters button that opens a dialog */}
+      <div className="flex md:hidden items-center gap-2">
+        <Button size="sm" className="gold-gradient" onClick={() => setMobileFiltersOpen(true)}>
+          Filters
+        </Button>
+        <Button size="sm" className="ml-auto" onClick={async () => {
+          const qs = [`format=csv`, `limit=${limit}`, `page=${page}`];
+          if (query) qs.push(`q=${encodeURIComponent(query)}`);
+          if (fromDate) qs.push(`from=${encodeURIComponent(fromDate)}`);
+          if (toDate) qs.push(`to=${encodeURIComponent(toDate)}`);
+          if (statusFilter && statusFilter !== "all") qs.push(`status=${encodeURIComponent(statusFilter)}`);
+          const res = await fetch(`/api/orders?${qs.join("&")}`);
+          if (!res.ok) { toast.error("Export failed"); return; }
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "orders.csv";
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        }}>Export CSV</Button>
+      </div>
+
+      <Dialog open={mobileFiltersOpen} onOpenChange={(open) => setMobileFiltersOpen(open)}>
+        <DialogContent className="bg-luxury-dark border-luxury-border max-w-md fixed bottom-0 left-0 right-0 rounded-t-xl">
+          <DialogHeader>
+            <DialogTitle className="text-white">Filters</DialogTitle>
+            <DialogDescription className="text-muted-foreground">Refine orders</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-4">
+            <Input placeholder="Search by email, name or reference" value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} onKeyDown={(e: any) => { if (e.key === "Enter") { setMobileFiltersOpen(false); setPage(1); } }} />
+            <DateRangePicker
+              value={{ from: fromDate || null, to: toDate || null }}
+              onChange={({ from, to }) => {
+                setFromDate(from || "")
+                setToDate(to || "")
+                setPage(1)
+                setMobileFiltersOpen(false)
+              }}
+            />
+            <div className="flex gap-2">
+              <Button size="sm" variant="outline" onClick={() => { applyPreset("today"); setMobileFiltersOpen(false); }}>Today</Button>
+              <Button size="sm" variant="outline" onClick={() => { applyPreset("7d"); setMobileFiltersOpen(false); }}>Last 7 Days</Button>
+              <Button size="sm" variant="outline" onClick={() => { applyPreset("30d"); setMobileFiltersOpen(false); }}>Last 30 Days</Button>
+            </div>
+            <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); setMobileFiltersOpen(false); }}>
+              <SelectTrigger className="w-full"><SelectValue placeholder="Status" /></SelectTrigger>
+              <SelectContent className="bg-luxury-dark border-luxury-border">
+                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="paid">Paid</SelectItem>
+                <SelectItem value="failed">Failed</SelectItem>
+                <SelectItem value="shipped">Shipped</SelectItem>
+                <SelectItem value="delivered">Delivered</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex items-center gap-2">
+              <Button onClick={() => { setQuery(""); setFromDate(""); setToDate(""); setStatusFilter("all"); setLimit(20); setPage(1); setMobileFiltersOpen(false); }}>Clear Filters</Button>
+              <Button className="ml-auto" onClick={() => setMobileFiltersOpen(false)}>Done</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {loading ? <div className="flex justify-center py-12"><div className="w-8 h-8 border-2 border-gold border-t-transparent rounded-full animate-spin" /></div> :
+      orders.length === 0 ? <div className="text-center py-12 text-muted-foreground">No orders found</div> :
+      <div className="space-y-2">
+        {orders.map((o) => (
+          <div key={o.id} className="bg-luxury-dark border rounded-xl p-4 flex items-center justify-between">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-3">
+                <div className="text-white font-semibold">{o.fullName}</div>
+                <div className="text-xs text-muted-foreground">{o.email}</div>
+                <div className="text-xs text-muted-foreground">{new Date(o.createdAt).toLocaleString()}</div>
+              </div>
+              <div className="flex items-center gap-3 mt-2">
+                <div className="text-gold font-bold">{o.currency} {o.totalAmount}</div>
+                <Badge className={`text-[10px] ${o.status === 'paid' ? 'bg-green-600 text-white' : o.status === 'pending' ? 'bg-orange-500/30 text-orange-400' : 'bg-luxury-gray text-muted-foreground'}`}>{o.status}</Badge>
+                <div className="text-xs text-muted-foreground">Ref: {o.reference} {o.trackingNumber ? `· Tracking: ${o.trackingNumber}` : ""}</div>
+              </div>
+            </div>
+            <div className="flex gap-2 ml-4">
+              <Button size="sm" variant="outline" onClick={() => { setTrackingInput(o.trackingNumber || ""); setSelected(o); }} className="h-8">View</Button>
+              {o.status !== 'shipped' && <Button size="sm" className="gold-gradient" onClick={() => updateStatus(o.id, 'shipped')}>Mark Shipped</Button>}
+              {o.status !== 'delivered' && <Button size="sm" variant="outline" onClick={() => updateStatus(o.id, 'delivered')}>Mark Delivered</Button>}
+            </div>
+          </div>
+        ))}
+      </div>}
+
+      {/* Pagination */}
+      <div className="flex items-center justify-between mt-3">
+        <div className="text-xs text-muted-foreground">Showing {orders.length} of {total} orders</div>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page <= 1}>Prev</Button>
+          <div className="text-sm text-white">Page {page}</div>
+          <Button size="sm" variant="outline" onClick={() => setPage((p) => p + 1)} disabled={orders.length < limit}>Next</Button>
+        </div>
+      </div>
+
+      {/* Detail Dialog */}
+      <Dialog open={selected !== null} onOpenChange={(open) => { if (!open) setSelected(null); }}>
+        <DialogContent className="bg-luxury-dark border-luxury-border max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-white">Order Details</DialogTitle>
+            <DialogDescription className="text-muted-foreground">Manage order</DialogDescription>
+          </DialogHeader>
+          {selected && (
+            <div className="space-y-3 mt-4">
+              <div className="text-sm text-white"><strong>{selected.fullName}</strong> — {selected.email}</div>
+              <div className="text-xs text-muted-foreground">Placed: {new Date(selected.createdAt).toLocaleString()}</div>
+              <div className="bg-luxury-gray p-3 rounded-md text-sm">
+                <div className="font-medium text-white">Items</div>
+                <pre className="text-xs text-muted-foreground mt-2">{selected.items}</pre>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="text-gold font-bold">{selected.currency} {selected.totalAmount}</div>
+                <Badge className="text-[10px]">{selected.status}</Badge>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="col-span-2">
+                  <label className="text-xs text-white/80 mb-1 block">Tracking Number (optional)</label>
+                  <Input value={trackingInput} onChange={(e) => setTrackingInput(e.target.value)} className="bg-luxury-gray border-luxury-border text-white" />
+                </div>
+                <div className="flex gap-2 items-end">
+                  <Button onClick={() => updateStatus(selected.id, 'shipped', trackingInput)} className="gold-gradient">Mark Shipped</Button>
+                  <Button variant="outline" onClick={() => updateStatus(selected.id, 'delivered', trackingInput)}>Mark Delivered</Button>
+                  <Button variant="outline" onClick={() => setSelected(null)}>Close</Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
 /* ─────────── Messages Tab ─────────── */
 function MessagesTab({ onRefresh }: { onRefresh: () => void }) {
   const [messages, setMessages] = useState<ContactMsg[]>([]);
@@ -637,12 +1037,20 @@ function MessagesTab({ onRefresh }: { onRefresh: () => void }) {
     try {
       const res = await fetch("/api/contact");
       const data = await res.json();
-      setMessages(data || []);
-    } catch {}
-    setLoading(false);
+      return data || [];
+    } catch { return []; }
   }, []);
 
-  useEffect(() => { fetchMessages(); }, [fetchMessages]);
+  useEffect(() => {
+    let mounted = true;
+    (async () => {
+      const data = await fetchMessages();
+      if (!mounted) return;
+      setMessages(data);
+      setLoading(false);
+    })();
+    return () => { mounted = false; };
+  }, [fetchMessages]);
 
   const markRead = async (id: string) => {
     try {
@@ -692,15 +1100,16 @@ function MessagesTab({ onRefresh }: { onRefresh: () => void }) {
 
 /* ─────────── Main Admin Panel ─────────── */
 export default function AdminPanel() {
-  const [authenticated, setAuthenticated] = useState(false);
+  const [authenticated, setAuthenticated] = useState<boolean>(() => {
+    try { return typeof window !== "undefined" && localStorage.getItem("lacelle_admin") === "true"; }
+    catch { return false; }
+  });
   const [products, setProducts] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [messages, setMessages] = useState<ContactMsg[]>([]);
   const [activeTab, setActiveTab] = useState("dashboard");
 
-  useEffect(() => {
-    if (localStorage.getItem("lacelle_admin") === "true") setAuthenticated(true);
-  }, []);
+  
 
   const fetchAll = useCallback(async () => {
     try {
@@ -715,11 +1124,24 @@ export default function AdminPanel() {
     } catch {}
   }, []);
 
-  useEffect(() => { if (authenticated) fetchAll(); }, [authenticated, fetchAll]);
+  useEffect(() => {
+    let mounted = true;
+    if (!authenticated) return;
+    (async () => {
+      if (!mounted) return;
+      await fetchAll();
+    })();
+    return () => { mounted = false; };
+  }, [authenticated, fetchAll]);
 
   const handleLogout = () => {
-    localStorage.removeItem("lacelle_admin");
-    setAuthenticated(false);
+    (async () => {
+      try {
+        await fetch("/api/admin/logout", { method: "POST" });
+      } catch {}
+      localStorage.removeItem("lacelle_admin");
+      setAuthenticated(false);
+    })();
   };
 
   if (!authenticated) return <AdminLogin onLogin={() => setAuthenticated(true)} />;
@@ -727,6 +1149,7 @@ export default function AdminPanel() {
   const tabs = [
     { value: "dashboard", label: "Dashboard", icon: BarChart3 },
     { value: "products", label: "Products", icon: Package },
+    { value: "orders", label: "Orders", icon: ShoppingBag },
     { value: "reviews", label: "Reviews", icon: Star },
     { value: "messages", label: "Messages", icon: MessageSquare },
     { value: "settings", label: "Settings", icon: Settings },
@@ -768,6 +1191,7 @@ export default function AdminPanel() {
             </TabsList>
             <TabsContent value="dashboard"><DashboardTab products={products} reviews={reviews} messages={messages} /></TabsContent>
             <TabsContent value="products"><ProductsTab products={products} onRefresh={fetchAll} /></TabsContent>
+            <TabsContent value="orders"><OrdersTab onRefresh={fetchAll} /></TabsContent>
             <TabsContent value="reviews"><ReviewsTab onRefresh={fetchAll} /></TabsContent>
             <TabsContent value="messages"><MessagesTab onRefresh={fetchAll} /></TabsContent>
             <TabsContent value="settings"><SettingsTab /></TabsContent>
@@ -786,6 +1210,7 @@ export default function AdminPanel() {
         <div className="md:hidden pb-20">
           {activeTab === "dashboard" && <DashboardTab products={products} reviews={reviews} messages={messages} />}
           {activeTab === "products" && <ProductsTab products={products} onRefresh={fetchAll} />}
+          {activeTab === "orders" && <OrdersTab onRefresh={fetchAll} />}
           {activeTab === "reviews" && <ReviewsTab onRefresh={fetchAll} />}
           {activeTab === "messages" && <MessagesTab onRefresh={fetchAll} />}
           {activeTab === "settings" && <SettingsTab />}

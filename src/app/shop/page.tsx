@@ -552,10 +552,14 @@ function WriteReviewDialog({ open, onOpenChange, products, preselectedProductId 
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div>
             <label className="text-sm text-white/80 mb-1 block">Product *</label>
-            <Select value={form.productId} onValueChange={(v) => setForm((f) => ({ ...f, productId: v }))}>
-              <SelectTrigger className="bg-luxury-gray border-luxury-border text-white"><SelectValue placeholder="Select product" /></SelectTrigger>
-              <SelectContent className="bg-luxury-dark border-luxury-border">{products.map((p) => <SelectItem key={p.id} value={p.id} className="text-white">{p.name}</SelectItem>)}</SelectContent>
-            </Select>
+            {preselectedProductId ? (
+              <div className="bg-luxury-gray border border-luxury-border rounded-md px-3 py-2 text-white">{products.find((p) => p.id === preselectedProductId)?.name || "Selected product"}</div>
+            ) : (
+              <Select value={form.productId} onValueChange={(v) => setForm((f) => ({ ...f, productId: v }))}>
+                <SelectTrigger className="bg-luxury-gray border-luxury-border text-white"><SelectValue placeholder="Select product" /></SelectTrigger>
+                <SelectContent className="bg-luxury-dark border-luxury-border">{products.map((p) => <SelectItem key={p.id} value={p.id} className="text-white">{p.name}</SelectItem>)}</SelectContent>
+              </Select>
+            )}
           </div>
           <div className="flex gap-4">
             <div className="flex-1"><label className="text-sm text-white/80 mb-1 block">Name *</label><Input value={form.author} onChange={(e) => setForm((f) => ({ ...f, author: e.target.value }))} className="bg-luxury-gray border-luxury-border text-white" required /></div>
@@ -660,7 +664,8 @@ function ShopPage() {
   useEffect(() => {
     const cat = searchParams.get("category");
     if (cat && CATEGORIES.includes(cat)) {
-      setActiveCategory(cat);
+      // schedule state update to avoid synchronous setState inside effect
+      setTimeout(() => setActiveCategory(cat), 0);
     }
   }, [searchParams]);
 

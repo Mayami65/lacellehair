@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
+import { validateToken } from "@/lib/adminAuth";
 
 export async function GET() {
   try {
@@ -17,6 +18,11 @@ export async function GET() {
 
 export async function PUT(request: NextRequest) {
   try {
+    const cookie = request.headers.get("cookie") || "";
+    const m = cookie.match(/lacelle_admin_token=([^;]+)/);
+    const token = m ? m[1] : undefined;
+    if (!validateToken(token)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+
     const body = await request.json();
     const entries = body.settings || body;
 

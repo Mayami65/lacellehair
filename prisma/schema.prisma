@@ -84,6 +84,7 @@ model Order {
   currency      String   @default("GHS")
   paystackRef   String   @default("")
   status        String   @default("pending") // pending, paid, failed, shipped, delivered
+  trackingNumber String?
   paymentMethod String   @default("paystack")
   paidAt        DateTime?
   createdAt     DateTime @default(now())
