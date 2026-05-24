@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { validateToken } from "@/lib/adminAuth";
 
-export const runtime = "node";
+export const runtime = "nodejs";
 
 // Simple in-memory rate limiter per IP (process-limited)
 const rateMap = new Map<string, { count: number; first: number }>();

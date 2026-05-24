@@ -35,10 +35,11 @@ export async function GET(req: NextRequest) {
   const where: any = {};
   if (status) where.status = status;
   if (q) {
+    // SQLite does not support mode:"insensitive" — search is case-sensitive.
     where.OR = [
-      { email: { contains: q, mode: "insensitive" } },
-      { fullName: { contains: q, mode: "insensitive" } },
-      { reference: { contains: q, mode: "insensitive" } },
+      { email: { contains: q } },
+      { fullName: { contains: q } },
+      { reference: { contains: q } },
     ];
   }
   if (from || to) {
@@ -99,8 +100,10 @@ export async function PATCH(req: NextRequest) {
 
   const update: any = {};
   if (status) update.status = status;
+  if (status === "shipped" && !trackingNumber?.trim()) {
+    return new NextResponse(JSON.stringify({ error: "Tracking number is required to mark as shipped" }), { status: 400, headers: { "Content-Type": "application/json" } });
+  }
   if (trackingNumber) {
-    // basic tracking number validation
     const ok = /^[A-Za-z0-9\-_.]{3,128}$/.test(trackingNumber);
     if (!ok) return new NextResponse(JSON.stringify({ error: "invalid trackingNumber format" }), { status: 400, headers: { "Content-Type": "application/json" } });
     update.trackingNumber = trackingNumber;

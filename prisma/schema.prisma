@@ -56,7 +56,7 @@ model Review {
   title     String   @default("")
   text      String
   verified  Boolean  @default(false)
-  approved  Boolean  @default(true)
+  approved  Boolean  @default(false)
   createdAt DateTime @default(now())
 }
 
