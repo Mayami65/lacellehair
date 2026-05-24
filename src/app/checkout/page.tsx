@@ -75,8 +75,12 @@ function LoadingFallback() {
 
 function CheckoutContent() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
-  const [processing, setProcessing] = useState(false);
+  const [processingMethod, setProcessingMethod] = useState<
+    "paystack" | "stripe" | null
+  >(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
+    "paystack" | "stripe"
+  >("paystack");
 
   // Customer info
   const [fullName, setFullName] = useState("");
@@ -118,72 +122,125 @@ function CheckoutContent() {
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
-  const handlePlaceOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const buildCheckoutPayload = () => {
+    const items = cart.map((item) => ({
+      productId: item.product.id,
+      name: item.product.name,
+      image: item.product.image,
+      variantId: item.variant?.id || null,
+      length: item.variant?.length || null,
+      color: item.variant?.color || null,
+      price: item.variant ? item.variant.price : item.product.price,
+      quantity: item.quantity,
+    }));
 
+    return {
+      email: email.trim(),
+      fullName: fullName.trim(),
+      phone: phone.trim(),
+      address: address.trim(),
+      city: city.trim(),
+      state: state.trim(),
+      country: country.trim(),
+      items,
+      subtotal,
+      shippingFee,
+      totalAmount: total,
+      currency,
+    };
+  };
+
+  const validateCheckout = () => {
     if (cart.length === 0) {
       toast.error("Your cart is empty");
-      return;
+      return false;
     }
 
     if (!fullName.trim() || !email.trim() || !phone.trim()) {
       toast.error("Please fill in your name, email, and phone number");
-      return;
+      return false;
     }
 
-    setProcessing(true);
+    return true;
+  };
+
+  const handlePaystackCheckout = async () => {
+    if (!validateCheckout()) return;
+
+    setProcessingMethod("paystack");
 
     try {
-      const items = cart.map((item) => ({
-        productId: item.product.id,
-        name: item.product.name,
-        image: item.product.image,
-        variantId: item.variant?.id || null,
-        length: item.variant?.length || null,
-        color: item.variant?.color || null,
-        price: item.variant ? item.variant.price : item.product.price,
-        quantity: item.quantity,
-      }));
-
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: email.trim(),
-          fullName: fullName.trim(),
-          phone: phone.trim(),
-          address: address.trim(),
-          city: city.trim(),
-          state: state.trim(),
-          country: country.trim(),
-          items,
-          subtotal,
-          shippingFee,
-          totalAmount: total,
-          currency,
-        }),
+        body: JSON.stringify(buildCheckoutPayload()),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
         toast.error(data.error || "Checkout failed. Please try again.");
-        setProcessing(false);
+        setProcessingMethod(null);
         return;
       }
 
       if (data.authorization_url) {
-        // Redirect to Paystack payment page
         localStorage.removeItem("lacelle-cart");
         window.location.assign(data.authorization_url);
-      } else {
-        toast.error("Failed to initialize payment");
-        setProcessing(false);
+        return;
       }
+
+      toast.error("Failed to initialize Paystack payment");
+      setProcessingMethod(null);
     } catch {
       toast.error("Network error. Please try again.");
-      setProcessing(false);
+      setProcessingMethod(null);
     }
+  };
+
+  const handleStripeCheckout = async () => {
+    if (!validateCheckout()) return;
+
+    setProcessingMethod("stripe");
+
+    try {
+      const res = await fetch("/api/stripe/create-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(buildCheckoutPayload()),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        toast.error(data.error || "Stripe checkout failed. Please try again.");
+        setProcessingMethod(null);
+        return;
+      }
+
+      if (data.url) {
+        localStorage.removeItem("lacelle-cart");
+        window.location.assign(data.url);
+        return;
+      }
+
+      toast.error("Failed to initialize Stripe payment");
+      setProcessingMethod(null);
+    } catch {
+      toast.error("Network error. Please try again.");
+      setProcessingMethod(null);
+    }
+  };
+
+  const handlePlaceOrder = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (selectedPaymentMethod === "stripe") {
+      await handleStripeCheckout();
+      return;
+    }
+
+    await handlePaystackCheckout();
   };
 
   if (!mounted) return <LoadingFallback />;
@@ -461,32 +518,70 @@ function CheckoutContent() {
                   <CreditCard className="w-5 h-5 text-gold" />
                   Payment Method
                 </h2>
-                <div className="flex items-center gap-4 p-4 rounded-xl border border-gold/30 bg-gold/5">
-                  <div className="w-12 h-12 rounded-xl bg-gold/10 flex items-center justify-center flex-shrink-0">
-                    <Lock className="w-6 h-6 text-gold" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-white font-semibold text-sm">
-                      Pay with Paystack
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      Mobile Money, Visa, Mastercard, Bank Transfer
-                    </p>
-                  </div>
-                  <div className="flex gap-1.5">
-                    <div className="px-2 py-1 rounded bg-luxury-gray border border-luxury-border text-[10px] text-white/60">
-                      MTN
+                <div className="space-y-3">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPaymentMethod("paystack")}
+                    className={`w-full text-left flex items-center gap-4 p-4 rounded-xl border transition-colors ${
+                      selectedPaymentMethod === "paystack"
+                        ? "border-gold/40 bg-gold/5"
+                        : "border-luxury-border bg-luxury-gray/30 hover:bg-luxury-gray/50"
+                    }`}
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-gold/10 flex items-center justify-center flex-shrink-0">
+                      <Lock className="w-6 h-6 text-gold" />
                     </div>
-                    <div className="px-2 py-1 rounded bg-luxury-gray border border-luxury-border text-[10px] text-white/60">
-                      Voda
+                    <div className="flex-1">
+                      <p className="text-white font-semibold text-sm">
+                        Paystack
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Mobile Money, Visa, Mastercard, Bank Transfer
+                      </p>
                     </div>
-                    <div className="px-2 py-1 rounded bg-luxury-gray border border-luxury-border text-[10px] text-white/60">
-                      Visa
+                    <div
+                      className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                        selectedPaymentMethod === "paystack"
+                          ? "border-gold"
+                          : "border-luxury-border"
+                      }`}
+                    >
+                      {selectedPaymentMethod === "paystack" && (
+                        <div className="w-2.5 h-2.5 rounded-full bg-gold" />
+                      )}
                     </div>
-                    <div className="hidden sm:block px-2 py-1 rounded bg-luxury-gray border border-luxury-border text-[10px] text-white/60">
-                      MC
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedPaymentMethod("stripe")}
+                    className={`w-full text-left flex items-center gap-4 p-4 rounded-xl border transition-colors ${
+                      selectedPaymentMethod === "stripe"
+                        ? "border-pink/40 bg-pink/5"
+                        : "border-luxury-border bg-luxury-gray/30 hover:bg-luxury-gray/50"
+                    }`}
+                  >
+                    <div className="w-12 h-12 rounded-xl bg-pink/10 flex items-center justify-center flex-shrink-0">
+                      <CreditCard className="w-6 h-6 text-pink" />
                     </div>
-                  </div>
+                    <div className="flex-1">
+                      <p className="text-white font-semibold text-sm">Stripe</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        International cards and wallets
+                      </p>
+                    </div>
+                    <div
+                      className={`w-5 h-5 rounded-full border flex items-center justify-center ${
+                        selectedPaymentMethod === "stripe"
+                          ? "border-pink"
+                          : "border-luxury-border"
+                      }`}
+                    >
+                      {selectedPaymentMethod === "stripe" && (
+                        <div className="w-2.5 h-2.5 rounded-full bg-pink" />
+                      )}
+                    </div>
+                  </button>
                 </div>
                 <div className="flex items-center gap-2 mt-4 text-xs text-muted-foreground">
                   <Shield className="w-3.5 h-3.5 text-green-400" />
@@ -601,18 +696,28 @@ function CheckoutContent() {
 
                 <Button
                   type="submit"
-                  disabled={processing}
+                  disabled={processingMethod !== null}
                   className="w-full mt-6 py-4 rounded-xl text-sm font-bold transition-all gold-gradient text-luxury-black hover:opacity-90 shadow-lg shadow-gold/20 disabled:opacity-50"
                 >
-                  {processing ? (
+                  {processingMethod === "paystack" ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Processing...
+                      Redirecting to Paystack...
+                    </>
+                  ) : processingMethod === "stripe" ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Redirecting to Stripe...
+                    </>
+                  ) : selectedPaymentMethod === "stripe" ? (
+                    <>
+                      <CreditCard className="w-4 h-4 mr-2" />
+                      Pay with Stripe ${total.toFixed(2)}
                     </>
                   ) : (
                     <>
                       <Lock className="w-4 h-4 mr-2" />
-                      Pay ${total.toFixed(2)}
+                      Pay with Paystack ${total.toFixed(2)}
                     </>
                   )}
                 </Button>

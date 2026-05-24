@@ -1,8 +1,10 @@
 import type { NextConfig } from "next";
 
+const isProd = process.env.NODE_ENV === "production";
+
 const nextConfig: NextConfig = {
-  output: "standalone",
-  /* config options here */
+  // standalone output only during production build — breaks Turbopack routing in dev
+  ...(isProd ? { output: "standalone" as const } : {}),
   typescript: {
     ignoreBuildErrors: true,
   },

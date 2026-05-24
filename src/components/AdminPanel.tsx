@@ -62,7 +62,37 @@ interface Product {
   lowStockThreshold: number;
   featured: boolean;
   active: boolean;
+  images?: { url: string; public_id: string | null }[];
+  lengths?: string[];
+  colors?: string[];
   variants?: ProductVariant[];
+}
+
+interface VariantFormState {
+  length: string;
+  color: string;
+  price: number;
+  originalPrice: number | "";
+  stock: number;
+  sku: string;
+  active?: boolean;
+}
+
+interface ProductFormState {
+  name: string;
+  description: string;
+  price: number;
+  originalPrice: number | "";
+  image: string;
+  images: { url: string; public_id: string | null }[];
+  category: string;
+  badge: string;
+  stock: number;
+  lowStockThreshold: number;
+  featured: boolean;
+  active: boolean;
+  lengths: string[];
+  colors: string[];
 }
 
 interface ProductVariant {
@@ -328,7 +358,14 @@ function VariantsManager({ productId }: { productId: string }) {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [editVariant, setEditVariant] = useState<ProductVariant | null>(null);
-  const [vForm, setVForm] = useState<Record<string, string | number>>({});
+  const [vForm, setVForm] = useState<VariantFormState>({
+    length: "",
+    color: "",
+    price: 0,
+    originalPrice: "",
+    stock: 50,
+    sku: "",
+  });
 
   const fetchVariants = useCallback(async () => {
     try {
@@ -367,7 +404,15 @@ function VariantsManager({ productId }: { productId: string }) {
   };
 
   const openEditV = (v: ProductVariant) => {
-    setVForm({ ...v });
+    setVForm({
+      length: v.length || "",
+      color: v.color || "",
+      price: v.price || 0,
+      originalPrice: v.originalPrice ?? "",
+      stock: v.stock || 0,
+      sku: v.sku || "",
+      active: v.active,
+    });
     setEditVariant(v);
     setShowAdd(true);
   };
@@ -528,7 +573,7 @@ function VariantsManager({ productId }: { productId: string }) {
             <div>
               <label className="text-xs text-white/60 mb-1 block">Length</label>
               <Input
-                value={vForm.length || ""}
+                value={String(vForm.length ?? "")}
                 onChange={(e) => setVForm({ ...vForm, length: e.target.value })}
                 className="bg-luxury-gray border-luxury-border text-white h-9 text-sm"
                 placeholder='e.g. 18"'
@@ -537,7 +582,7 @@ function VariantsManager({ productId }: { productId: string }) {
             <div>
               <label className="text-xs text-white/60 mb-1 block">Color</label>
               <Input
-                value={vForm.color || ""}
+                value={String(vForm.color ?? "")}
                 onChange={(e) => setVForm({ ...vForm, color: e.target.value })}
                 className="bg-luxury-gray border-luxury-border text-white h-9 text-sm"
                 placeholder="e.g. #1B"
@@ -546,7 +591,7 @@ function VariantsManager({ productId }: { productId: string }) {
             <div>
               <label className="text-xs text-white/60 mb-1 block">SKU</label>
               <Input
-                value={vForm.sku || ""}
+                value={String(vForm.sku ?? "")}
                 onChange={(e) => setVForm({ ...vForm, sku: e.target.value })}
                 className="bg-luxury-gray border-luxury-border text-white h-9 text-sm"
                 placeholder="Optional"
@@ -560,7 +605,7 @@ function VariantsManager({ productId }: { productId: string }) {
               </label>
               <Input
                 type="number"
-                value={vForm.price || ""}
+                value={vForm.price === 0 ? "" : String(vForm.price)}
                 onChange={(e) =>
                   setVForm({ ...vForm, price: Number(e.target.value) })
                 }
@@ -573,7 +618,9 @@ function VariantsManager({ productId }: { productId: string }) {
               </label>
               <Input
                 type="number"
-                value={vForm.originalPrice || ""}
+                value={
+                  vForm.originalPrice === "" ? "" : String(vForm.originalPrice)
+                }
                 onChange={(e) =>
                   setVForm({
                     ...vForm,
@@ -587,7 +634,7 @@ function VariantsManager({ productId }: { productId: string }) {
               <label className="text-xs text-white/60 mb-1 block">Stock</label>
               <Input
                 type="number"
-                value={vForm.stock || ""}
+                value={vForm.stock === 0 ? "" : String(vForm.stock)}
                 onChange={(e) =>
                   setVForm({ ...vForm, stock: Number(e.target.value) })
                 }
@@ -629,9 +676,22 @@ function ProductsTab({
 }) {
   const [editProduct, setEditProduct] = useState<Product | null>(null);
   const [isNew, setIsNew] = useState(false);
-  const [form, setForm] = useState<Record<string, string | number | boolean>>(
-    {},
-  );
+  const [form, setForm] = useState<ProductFormState>({
+    name: "",
+    description: "",
+    price: 0,
+    originalPrice: "",
+    image: "",
+    images: [],
+    category: "Bundles",
+    badge: "",
+    stock: 50,
+    lowStockThreshold: 5,
+    featured: false,
+    active: true,
+    lengths: [],
+    colors: [],
+  });
   const [saving, setSaving] = useState(false);
 
   const openNew = () => {
@@ -642,6 +702,7 @@ function ProductsTab({
       price: 0,
       originalPrice: "",
       image: "",
+      images: [],
       category: "Bundles",
       badge: "",
       stock: 50,
@@ -657,13 +718,47 @@ function ProductsTab({
   const openEdit = (p: Product) => {
     setIsNew(false);
     setEditProduct(p);
-    setForm({ ...p });
+    setForm({
+      name: p.name || "",
+      description: p.description || "",
+      price: Number(p.price) || 0,
+      originalPrice: p.originalPrice ?? "",
+      image: p.image || "",
+      images: Array.isArray(p.images)
+        ? p.images
+        : p.image
+          ? [{ url: p.image, public_id: null }]
+          : [],
+      category: p.category || "Bundles",
+      badge: p.badge || "",
+      stock: Number(p.stock) || 0,
+      lowStockThreshold: Number(p.lowStockThreshold) || 5,
+      featured: !!p.featured,
+      active: p.active !== false,
+      lengths: Array.isArray(p.lengths) ? p.lengths : [],
+      colors: Array.isArray(p.colors) ? p.colors : [],
+    });
   };
 
   const closeProductDialog = () => {
     setEditProduct(null);
     setIsNew(false);
-    setForm({});
+    setForm({
+      name: "",
+      description: "",
+      price: 0,
+      originalPrice: "",
+      image: "",
+      images: [],
+      category: "Bundles",
+      badge: "",
+      stock: 50,
+      lowStockThreshold: 5,
+      featured: false,
+      active: true,
+      lengths: [],
+      colors: [],
+    });
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -827,11 +922,22 @@ function ProductsTab({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
+
+      if (res.status === 401) {
+        toast.error("Session expired. Please log in again.");
+        localStorage.removeItem("lacelle_admin");
+        window.location.reload();
+        return;
+      }
+
       if (res.ok) {
         toast.success(isNew ? "Product created" : "Product updated");
         closeProductDialog();
         onRefresh();
-      } else toast.error("Failed to save");
+      } else {
+        const err = await res.json().catch(() => ({}));
+        toast.error(err.error || "Failed to save");
+      }
     } catch {
       toast.error("Network error");
     }
@@ -1030,7 +1136,7 @@ function ProductsTab({
                   Name *
                 </label>
                 <Input
-                  value={form.name || ""}
+                  value={String(form.name ?? "")}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
                   className="bg-luxury-gray border-luxury-border text-white"
                 />
@@ -1040,7 +1146,7 @@ function ProductsTab({
                   Category
                 </label>
                 <Select
-                  value={form.category as string}
+                  value={String(form.category ?? "Bundles")}
                   onValueChange={(v) => setForm({ ...form, category: v })}
                 >
                   <SelectTrigger className="bg-luxury-gray border-luxury-border text-white">
@@ -1061,7 +1167,7 @@ function ProductsTab({
                 Description
               </label>
               <Textarea
-                value={form.description || ""}
+                value={String(form.description ?? "")}
                 onChange={(e) =>
                   setForm({ ...form, description: e.target.value })
                 }
@@ -1076,7 +1182,7 @@ function ProductsTab({
                 </label>
                 <Input
                   type="number"
-                  value={form.price || ""}
+                  value={form.price === 0 ? "" : String(form.price)}
                   onChange={(e) =>
                     setForm({ ...form, price: Number(e.target.value) })
                   }
@@ -1089,13 +1195,17 @@ function ProductsTab({
                 </label>
                 <Input
                   type="number"
-                  value={form.originalPrice || ""}
+                  value={
+                    form.originalPrice === "" || form.originalPrice === null
+                      ? ""
+                      : String(form.originalPrice)
+                  }
                   onChange={(e) =>
                     setForm({
                       ...form,
                       originalPrice: e.target.value
                         ? Number(e.target.value)
-                        : null,
+                        : "",
                     })
                   }
                   className="bg-luxury-gray border-luxury-border text-white"
@@ -1107,7 +1217,7 @@ function ProductsTab({
                 </label>
                 <Input
                   type="number"
-                  value={form.stock || ""}
+                  value={form.stock === 0 ? "" : String(form.stock)}
                   onChange={(e) =>
                     setForm({ ...form, stock: Number(e.target.value) })
                   }
@@ -1120,7 +1230,11 @@ function ProductsTab({
                 </label>
                 <Input
                   type="number"
-                  value={form.lowStockThreshold || ""}
+                  value={
+                    form.lowStockThreshold === 0
+                      ? ""
+                      : String(form.lowStockThreshold)
+                  }
                   onChange={(e) =>
                     setForm({
                       ...form,
@@ -1137,7 +1251,7 @@ function ProductsTab({
                   Badge
                 </label>
                 <Input
-                  value={form.badge || ""}
+                  value={String(form.badge ?? "")}
                   onChange={(e) => setForm({ ...form, badge: e.target.value })}
                   className="bg-luxury-gray border-luxury-border text-white"
                   placeholder="Best Seller"
@@ -2125,16 +2239,8 @@ function MessagesTab({ onRefresh }: { onRefresh: () => void }) {
 
 /* ─────────── Main Admin Panel ─────────── */
 export default function AdminPanel() {
-  const [authenticated, setAuthenticated] = useState<boolean>(() => {
-    try {
-      return (
-        typeof window !== "undefined" &&
-        localStorage.getItem("lacelle_admin") === "true"
-      );
-    } catch {
-      return false;
-    }
-  });
+  const [authenticated, setAuthenticated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const [products, setProducts] = useState<Product[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [messages, setMessages] = useState<ContactMsg[]>([]);
@@ -2151,6 +2257,25 @@ export default function AdminPanel() {
       setReviews(rRes.reviews || []);
       setMessages(Array.isArray(mRes) ? mRes : []);
     } catch {}
+  }, []);
+
+  useEffect(() => {
+    // Read localStorage only after mount to keep server/client initial HTML identical.
+    const timer = setTimeout(() => {
+      (async () => {
+        try {
+          const res = await fetch("/api/admin/session");
+          const data = await res.json().catch(() => ({}));
+          setAuthenticated(Boolean(data.authenticated && res.ok));
+        } catch {
+          setAuthenticated(false);
+        } finally {
+          setAuthChecked(true);
+        }
+      })();
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, []);
 
   useEffect(() => {
@@ -2174,6 +2299,13 @@ export default function AdminPanel() {
       setAuthenticated(false);
     })();
   };
+
+  if (!authChecked)
+    return (
+      <div className="min-h-screen bg-luxury-black flex items-center justify-center p-4">
+        <div className="w-10 h-10 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
 
   if (!authenticated)
     return <AdminLogin onLogin={() => setAuthenticated(true)} />;
