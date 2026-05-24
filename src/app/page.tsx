@@ -178,10 +178,10 @@ function usePrefersReducedMotion(): boolean {
   const [prefersReduced, setPrefersReduced] = useState(false);
   useEffect(() => {
     const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
-    setPrefersReduced(mq.matches);
+    const t = setTimeout(() => setPrefersReduced(mq.matches), 0);
     const handler = (e: MediaQueryListEvent) => setPrefersReduced(e.matches);
     mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
+    return () => { mq.removeEventListener("change", handler); clearTimeout(t); };
   }, []);
   return prefersReduced;
 }
@@ -237,23 +237,26 @@ function SearchOverlay({ open, onOpenChange, products, onProductClick }: { open:
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-luxury-dark border-luxury-border max-w-2xl p-0 gap-0 overflow-hidden">
-        <div className="flex items-center gap-3 p-4 border-b border-luxury-border">
-          <Search className="w-5 h-5 text-gold flex-shrink-0" />
-          <input
-            ref={inputRef}
-            type="text"
-            placeholder="Search products..."
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="flex-1 bg-transparent text-white text-lg outline-none placeholder:text-white/30"
-            onKeyDown={(e) => { if (e.key === "Escape") onOpenChange(false); }}
-          />
-          {query && (
-            <Button variant="ghost" size="icon" className="text-white/60 hover:text-white h-8 w-8" onClick={() => setQuery("")}>
-              <X className="w-4 h-4" />
-            </Button>
-          )}
-        </div>
+        <DialogHeader>
+          <DialogTitle className="sr-only">Search products</DialogTitle>
+          <div className="flex items-center gap-3 p-4 border-b border-luxury-border">
+            <Search className="w-5 h-5 text-gold flex-shrink-0" />
+            <input
+              ref={inputRef}
+              type="text"
+              placeholder="Search products..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="flex-1 bg-transparent text-white text-lg outline-none placeholder:text-white/30"
+              onKeyDown={(e) => { if (e.key === "Escape") onOpenChange(false); }}
+            />
+            {query && (
+              <Button variant="ghost" size="icon" className="text-white/60 hover:text-white h-8 w-8" onClick={() => setQuery("") }>
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        </DialogHeader>
         <div className="max-h-96 overflow-y-auto">
           {query.trim().length > 0 && results.length === 0 && (
             <div className="p-8 text-center">

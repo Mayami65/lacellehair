@@ -23,6 +23,10 @@ function SuccessContent() {
   const reference = searchParams.get("reference") || "";
   const [status, setStatus] = useState<"loading" | "success" | "failed">("loading");
   const [copied, setCopied] = useState(false);
+  const [lookupEmail, setLookupEmail] = useState("");
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupError, setLookupError] = useState("");
+  const [lookupResult, setLookupResult] = useState<{ reference: string; status: string; trackingNumber?: string | null; paidAt?: string | null; createdAt?: string; updatedAt?: string; fullName?: string } | null>(null);
 
   useEffect(() => {
     if (!reference) {
@@ -43,6 +47,34 @@ function SuccessContent() {
     navigator.clipboard.writeText(reference);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleLookup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reference || !lookupEmail.trim()) {
+      setLookupError("Enter the email used for the order.");
+      return;
+    }
+
+    setLookupLoading(true);
+    setLookupError("");
+    setLookupResult(null);
+
+    try {
+      const res = await fetch(`/api/orders/public?reference=${encodeURIComponent(reference)}&email=${encodeURIComponent(lookupEmail.trim())}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setLookupError(data.error || "Order not found");
+        return;
+      }
+
+      setLookupResult(data.order || null);
+    } catch {
+      setLookupError("Unable to look up order right now.");
+    } finally {
+      setLookupLoading(false);
+    }
   };
 
   if (status === "loading") {
@@ -127,6 +159,51 @@ function SuccessContent() {
                 )}
               </button>
             </div>
+          </div>
+
+          {/* Tracking lookup */}
+          <div className="rounded-xl border border-luxury-border p-5 mb-8 text-left" style={{ backgroundColor: "#111111" }}>
+            <h3 className="text-white font-semibold text-sm mb-2">Track your order</h3>
+            <p className="text-xs text-muted-foreground mb-4">Use the email you entered at checkout to see the current order status and tracking number.</p>
+            <form onSubmit={handleLookup} className="space-y-3">
+              <div>
+                <label className="text-xs text-white/70 mb-1 block">Order Reference</label>
+                <input
+                  value={reference}
+                  readOnly
+                  className="w-full rounded-xl border border-luxury-border bg-luxury-gray px-3 py-2 text-white/80 font-mono text-sm outline-none"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-white/70 mb-1 block">Email Address</label>
+                <input
+                  type="email"
+                  value={lookupEmail}
+                  onChange={(e) => setLookupEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="w-full rounded-xl border border-luxury-border bg-luxury-gray px-3 py-2 text-white placeholder:text-white/30 text-sm outline-none focus:border-gold/50"
+                />
+              </div>
+              <Button type="submit" disabled={lookupLoading} className="w-full gold-gradient text-luxury-black font-semibold rounded-full px-6 py-3">
+                {lookupLoading ? "Looking up..." : "Track Order"}
+              </Button>
+            </form>
+
+            {lookupError && <p className="text-sm text-red-400 mt-3">{lookupError}</p>}
+
+            {lookupResult && (
+              <div className="mt-4 rounded-xl border border-gold/30 bg-gold/5 p-4 space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-sm text-white font-medium">{lookupResult.fullName || "Customer order"}</p>
+                  <span className="text-xs uppercase tracking-wide text-gold">{lookupResult.status}</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Created: {lookupResult.createdAt ? new Date(lookupResult.createdAt).toLocaleString() : "N/A"}</p>
+                <p className="text-xs text-muted-foreground">Paid: {lookupResult.paidAt ? new Date(lookupResult.paidAt).toLocaleString() : "Not yet paid"}</p>
+                <p className="text-sm text-white">
+                  Tracking number: {lookupResult.trackingNumber || "Not assigned yet"}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* What's next */}
