@@ -20,9 +20,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 })
     }
 
-    // If already paid, return order
+    // Already paid / fulfilled
     if (order.status === "paid" || order.status === "shipped" || order.status === "delivered") {
       return NextResponse.json({ status: "success", order })
+    }
+
+    // Stripe orders are confirmed via webhook — if still pending, webhook hasn't arrived yet
+    if (order.paymentMethod === "stripe") {
+      return NextResponse.json({ status: "processing", order })
     }
 
     // Verify with Paystack
@@ -37,7 +42,6 @@ export async function GET(request: NextRequest) {
     const verifyData = await verifyRes.json()
 
     if (verifyData.status && verifyData.data.status === "success") {
-      // Mark as paid
       const [updated] = await db.update(OrderTable)
         .set({ status: "paid", paystackRef: reference, paidAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
         .where(eq(OrderTable.id, order.id))
@@ -46,7 +50,6 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ status: "success", order: updated })
     }
 
-    // Check for stale pending orders
     const updated = await cancelStalePendingOrder(reference)
 
     return NextResponse.json({

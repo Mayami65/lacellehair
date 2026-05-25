@@ -30,7 +30,7 @@ function SuccessContent() {
   const searchParams = useSearchParams();
   const reference = searchParams.get("reference") || "";
   const [status, setStatus] = useState<
-    "loading" | "success" | "failed" | "cancelled"
+    "loading" | "success" | "failed" | "cancelled" | "processing"
   >("loading");
   const [copied, setCopied] = useState(false);
   const [lookupEmail, setLookupEmail] = useState("");
@@ -57,6 +57,7 @@ function SuccessContent() {
       .then((r) => r.json())
       .then((data) => {
         if (data.status === "success") setStatus("success");
+        else if (data.status === "processing") setStatus("processing");
         else if (data.status === "cancelled" || data.status === "abandoned")
           setStatus("cancelled");
         else setStatus("failed");
@@ -113,6 +114,44 @@ function SuccessContent() {
         <p className="text-muted-foreground text-sm mt-2">
           Please wait a moment
         </p>
+      </div>
+    );
+  }
+
+  if (status === "processing") {
+    return (
+      <div
+        className="min-h-screen flex flex-col items-center justify-center px-4"
+        style={{ backgroundColor: "#0A0A0A" }}
+      >
+        <div className="w-20 h-20 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center mb-6">
+          <div className="w-10 h-10 border-2 border-gold border-t-transparent rounded-full animate-spin" />
+        </div>
+        <h1
+          className="text-2xl font-bold text-white mb-2"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          Payment Processing
+        </h1>
+        <p className="text-muted-foreground mb-8 text-center max-w-md">
+          Your Stripe payment is being confirmed. This usually takes just a few seconds.
+          Refresh the page to check your order status.
+        </p>
+        <div className="flex gap-3">
+          <Button
+            onClick={() => window.location.reload()}
+            className="gold-gradient text-luxury-black font-semibold rounded-full px-6"
+          >
+            Check Status
+          </Button>
+          <Button
+            onClick={() => router.push("/shop")}
+            variant="outline"
+            className="border-luxury-border text-white/70 rounded-full px-6 hover:border-gold hover:text-gold"
+          >
+            Back to Shop
+          </Button>
+        </div>
       </div>
     );
   }
