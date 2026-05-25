@@ -778,7 +778,7 @@ function Navbar({
                 onClick={onCartOpen}
               >
                 <ShoppingBag className="w-5 h-5" />
-                {cartCount > 0 && (
+                {mounted && cartCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-pink text-white text-[10px] font-bold flex items-center justify-center pink-glow">
                     {cartCount}
                   </span>
@@ -3163,6 +3163,8 @@ export default function Home() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewProductId, setReviewProductId] = useState<string | undefined>();
 
+  const [mounted, setMounted] = useState(false);
+
   // Feature 1: Search
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -3245,6 +3247,10 @@ export default function Home() {
   }, []);
 
   // Fetch ALL settings from API (used everywhere)
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
