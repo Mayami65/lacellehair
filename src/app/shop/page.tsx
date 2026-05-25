@@ -471,7 +471,7 @@ function ProductDetailModal({
                 {product.name}
               </DialogTitle>
               <DialogDescription className="text-muted-foreground">
-                {product.category}
+                {product.description}
               </DialogDescription>
             </DialogHeader>
             <div className="flex items-center gap-2 mb-4">
