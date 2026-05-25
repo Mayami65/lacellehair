@@ -528,8 +528,11 @@ function CheckoutContent() {
                         : "border-luxury-border bg-luxury-gray/30 hover:bg-luxury-gray/50"
                     }`}
                   >
-                    <div className="w-12 h-12 rounded-xl bg-gold/10 flex items-center justify-center flex-shrink-0">
-                      <Lock className="w-6 h-6 text-gold" />
+                    <div className="w-12 h-12 rounded-xl bg-[#0BA4DB]/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      <svg viewBox="0 0 120 28" className="w-8 h-auto" fill="none">
+                        <path d="M10.8 0h11.2L16.8 14.5 27.8 28H16.4L0 5.4V28h26.3V0H10.8z" fill="#0BA4DB" transform="scale(0.85) translate(4,0)" />
+                        <text x="40" y="19" fill="#0BA4DB" fontFamily="Arial,sans-serif" fontWeight="bold" fontSize="14">paystack</text>
+                      </svg>
                     </div>
                     <div className="flex-1">
                       <p className="text-white font-semibold text-sm">
@@ -561,8 +564,10 @@ function CheckoutContent() {
                         : "border-luxury-border bg-luxury-gray/30 hover:bg-luxury-gray/50"
                     }`}
                   >
-                    <div className="w-12 h-12 rounded-xl bg-pink/10 flex items-center justify-center flex-shrink-0">
-                      <CreditCard className="w-6 h-6 text-pink" />
+                    <div className="w-12 h-12 rounded-xl bg-[#635BFF]/10 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      <svg viewBox="0 0 60 25" className="w-8 h-auto" fill="none">
+                        <path fillRule="evenodd" clipRule="evenodd" d="M6.7 10.7h4.8c1.4 0 2.5.3 3.3 1 .7.6 1.1 1.5 1.1 2.6 0 1.1-.4 2-1.1 2.7-.8.7-1.9 1-3.3 1H8.8l-.7 3.3H5.3l1.4-6.6v-2zm1.5 3.7l-.5 2.2h2.4c.6 0 1-.1 1.3-.4.3-.3.5-.7.5-1.1 0-.4-.2-.8-.4-1-.3-.3-.7-.4-1.3-.4l-1.9.7zm9.5-3.7h2.7l-1.7 8h-2.7l1.7-8zm5.6 0h3.5c1.1 0 2 .3 2.6.9.6.6.9 1.4.9 2.4s-.3 1.8-.9 2.4c-.6.6-1.5.9-2.6.9h-1.8l-.7 3.4h-2.7l1.7-8zm1.2 3.7l-.4 2.1h1.1c.7 0 1.2-.1 1.5-.4.3-.3.5-.7.5-1.1 0-.4-.2-.7-.5-1-.3-.3-.8-.4-1.5-.4l-.7.8zm15.5-3.7l-3.3 8h-2.5l-1.6-6.4-1.6 6.4h-2.5l-2-8h2.6l1.1 5.4 1.5-5.4h2.3l1.5 5.4 1.1-5.4h2.9z" fill="#635BFF"/>
+                      </svg>
                     </div>
                     <div className="flex-1">
                       <p className="text-white font-semibold text-sm">Stripe</p>
