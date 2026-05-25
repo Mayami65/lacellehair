@@ -1257,6 +1257,7 @@ function ShopPage() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewProductId, setReviewProductId] = useState<string | undefined>();
   const [wishlistOpen, setWishlistOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   // Site settings
   const [whatsappNumber, setWhatsappNumber] = useState("1234567890");
@@ -1265,6 +1266,9 @@ function ShopPage() {
   const wishlistCount = wishlistIds.length;
 
   // Fetch products
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   useEffect(() => {
     fetch("/api/products")
       .then((r) => r.json())
@@ -1495,7 +1499,7 @@ function ShopPage() {
                 onClick={() => setWishlistOpen(true)}
               >
                 <Heart className="w-5 h-5" />
-                {wishlistCount > 0 && (
+                {mounted && wishlistCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-pink text-white text-[10px] font-bold flex items-center justify-center">
                     {wishlistCount}
                   </span>
@@ -1508,7 +1512,7 @@ function ShopPage() {
                 onClick={() => setCartOpen(true)}
               >
                 <ShoppingBag className="w-5 h-5" />
-                {cartCount > 0 && (
+                {mounted && cartCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-pink text-white text-[10px] font-bold flex items-center justify-center">
                     {cartCount}
                   </span>
