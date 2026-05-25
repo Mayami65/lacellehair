@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
   if (!stripeSecret) {
     return new NextResponse(JSON.stringify({ error: "Stripe is not configured" }), { status: 500 })
   }
-  const stripe = new Stripe(stripeSecret, { apiVersion: "2024-08-01" })
+  const stripe = new Stripe(stripeSecret)
   const webhookSecret = process.env["STRIPE_WEBHOOK_SECRET"] || ""
   const buf = await request.arrayBuffer()
   const sig = request.headers.get("stripe-signature") || ""
