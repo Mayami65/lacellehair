@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   if (!stripeSecret) {
     return NextResponse.json({ error: "Stripe is not configured" }, { status: 500 })
   }
-  const stripe = new Stripe(stripeSecret)
+  const stripe = new Stripe(stripeSecret, { apiVersion: "2026-04-22.dahlia" })
   try {
     const body = await request.json()
     const { email, fullName, phone, address, city, state, country, items, subtotal, shippingFee, totalAmount, currency } = body
@@ -47,11 +47,15 @@ export async function POST(request: NextRequest) {
 
     const baseUrl = process.env["NEXT_PUBLIC_BASE_URL"] || process.env["NEXTAUTH_URL"] || ""
 
+    // Stripe doesn't support GHS on this account — default to usd
+    const stripeCurrency = (currency || "usd").toLowerCase()
+    const safeCurrency = stripeCurrency === "ghs" ? "usd" : stripeCurrency
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: items.map((it: any) => ({
         price_data: {
-          currency: (currency || "USD").toLowerCase(),
+          currency: safeCurrency,
           product_data: { name: it.name },
           unit_amount: Math.round((it.price || 0) * 100),
         },
