@@ -39,108 +39,80 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Read env vars via Object.entries — Turbopack cannot statically trace this.
-function env(key: string) {
-  const entry = Object.entries(process.env).find(([k]) => k === key)
-  return entry ? entry[1] : undefined
-}
+function createPrisma(): PrismaClient {
+  const rawUrl = process.env['DATABASE_URL']?.trim()
+  const hasValidUrl =
+    !!rawUrl &&
+    rawUrl !== 'undefined' &&
+    rawUrl !== 'null' &&
+    !rawUrl.includes('undefined') &&
+    !rawUrl.includes('null')
 
-export const db =
-  globalForPrisma.prisma ??
-  (() => {
-    const isBuildPhase = env('NEXT_PHASE') === 'phase-production-build'
-    const isProductionRuntime = env('NODE_ENV') === 'production' && !isBuildPhase
-    const useTursoInDev = env('USE_TURSO_IN_DEV') === 'true'
+  const isProd = process.env['NODE_ENV'] === 'production'
+  const useTursoInDev = process.env['USE_TURSO_IN_DEV'] === 'true'
 
-    if (isBuildPhase) {
-      if (env('NODE_ENV') !== 'production')
-        console.log('[db:init]', { pid: process.pid, branch: 'buildPhase' })
-      return new PrismaClient({ log: ['query'] })
-    }
-
-    const rawUrl = env('DATABASE_URL')?.trim()
-    const hasValidUrl =
-      !!rawUrl &&
-      rawUrl !== 'undefined' &&
-      rawUrl !== 'null' &&
-      !rawUrl.includes('undefined') &&
-      !rawUrl.includes('null')
-
-    if (env('NODE_ENV') !== 'production') {
-      console.log('[db]', {
-        isBuildPhase,
-        isProductionRuntime,
-        useTursoInDev,
-        hasValidUrl,
-        databaseUrlPreview: rawUrl ? `${rawUrl.slice(0, 10)}...` : null,
-      })
-    }
-
-    // In local dev, default to SQLite unless explicitly opting into Turso.
-    if (!isProductionRuntime && !useTursoInDev) {
-      const devUrl =
-        hasValidUrl && rawUrl.startsWith('file:') ? rawUrl : 'file:./prisma/dev.db'
-
-      if (env('NODE_ENV') !== 'production')
-        console.log('[db:init]', { pid: process.pid, branch: 'sqlite-dev', devUrl })
-
-      return new PrismaClient({
-        datasources: { db: { url: devUrl } },
-        log: ['query'],
-      })
-    }
-
-    if (!hasValidUrl) {
-      throw new Error('DATABASE_URL is required in production runtime')
-    }
-
-    const url = rawUrl
-    const isLibsql =
-      url.startsWith('libsql://') ||
-      url.startsWith('https://') ||
-      url.startsWith('http://')
-
-    // Use Prisma's datasource directly for non-libsql production URLs.
-    if (!isLibsql) {
-      if (env('NODE_ENV') !== 'production')
-        console.log('[db:init]', { pid: process.pid, branch: 'prisma-direct', urlPreview: `${url.slice(0, 10)}...` })
-
-      return new PrismaClient({
-        datasources: { db: { url } },
-        log: ['query'],
-      })
-    }
-
-    const authToken = env('TURSO_AUTH_TOKEN')?.trim()
-    const hasAuthToken = !!authToken && authToken !== 'undefined' && authToken !== 'null'
-    if (env('NODE_ENV') !== 'production') {
-      console.log('[db:init]', {
-        pid: process.pid,
-        branch: 'libsql-adapter',
-        urlPreview: `${url.slice(0, 10)}...`,
-        hasAuthToken,
-      })
-    }
-
-    // DEBUG — remove after confirming env vars are set correctly on Render
-    console.log('[db:debug]', {
-      NODE_ENV: env('NODE_ENV'),
-      DATABASE_URL: env('DATABASE_URL') ? `${env('DATABASE_URL')!.slice(0, 20)}...` : null,
-      TURSO_AUTH_TOKEN: env('TURSO_AUTH_TOKEN') ? 'set' : 'missing',
-      url_being_used: url ? `${url.slice(0, 20)}...` : null,
-      allKeys: Object.keys(process.env).filter(k => k.includes('TURSO') || k.includes('DATABASE') || k.includes('NODE')),
-    })
-
-    const client = createClient({
-      url,
-      authToken: hasAuthToken ? authToken : undefined,
-    })
-    const adapter = new PrismaLibSQL(client)
-
+  // In local dev, default to SQLite unless explicitly opting into Turso.
+  if (!isProd && !useTursoInDev) {
+    const devUrl =
+      hasValidUrl && rawUrl.startsWith('file:') ? rawUrl : 'file:./prisma/dev.db'
+    console.log('[db:init]', { pid: process.pid, branch: 'sqlite-dev', devUrl })
     return new PrismaClient({
-      adapter,
+      datasources: { db: { url: devUrl } },
       log: ['query'],
     })
-  })()
+  }
 
-if (env('NODE_ENV') !== 'production') globalForPrisma.prisma = db
+  if (!hasValidUrl) {
+    throw new Error('DATABASE_URL is required in production runtime')
+  }
+
+  const url = rawUrl
+  const isLibsql =
+    url.startsWith('libsql://') ||
+    url.startsWith('https://') ||
+    url.startsWith('http://')
+
+  if (!isLibsql) {
+    return new PrismaClient({
+      datasources: { db: { url } },
+      log: ['query'],
+    })
+  }
+
+  const authToken = process.env['TURSO_AUTH_TOKEN']?.trim()
+  const hasAuthToken = !!authToken && authToken !== 'undefined' && authToken !== 'null'
+
+  console.log('[db:init]', {
+    pid: process.pid,
+    branch: 'libsql-adapter',
+    urlPreview: `${url.slice(0, 20)}...`,
+    hasAuthToken,
+  })
+
+  const client = createClient({
+    url,
+    authToken: hasAuthToken ? authToken : undefined,
+  })
+  const adapter = new PrismaLibSQL(client)
+
+  return new PrismaClient({
+    adapter,
+    log: ['query'],
+  })
+}
+
+// Proxy defers PrismaClient creation to first use, preventing Turbopack
+// from evaluating env var accesses at module-init / build time.
+export const db: PrismaClient = new Proxy({} as PrismaClient, {
+  get(_target, prop, receiver) {
+    if (!globalForPrisma.prisma) {
+      globalForPrisma.prisma = createPrisma()
+    }
+    const client = globalForPrisma.prisma
+    const value = Reflect.get(client as object, prop, client)
+    if (typeof value === 'function') {
+      return value.bind(client)
+    }
+    return value
+  },
+})
