@@ -5,9 +5,12 @@ import { eq } from "drizzle-orm"
 
 const { Order: OrderTable } = schema
 
-const stripe = new Stripe(process.env["STRIPE_SECRET_KEY"] || "", { apiVersion: "2024-08-01" })
-
 export async function POST(request: NextRequest) {
+  const stripeSecret = process.env["STRIPE_SECRET_KEY"]?.trim()
+  if (!stripeSecret) {
+    return new NextResponse(JSON.stringify({ error: "Stripe is not configured" }), { status: 500 })
+  }
+  const stripe = new Stripe(stripeSecret, { apiVersion: "2024-08-01" })
   const webhookSecret = process.env["STRIPE_WEBHOOK_SECRET"] || ""
   const buf = await request.arrayBuffer()
   const sig = request.headers.get("stripe-signature") || ""

@@ -4,9 +4,12 @@ import { db, schema } from "@/lib/db"
 
 const { Order: OrderTable } = schema
 
-const stripe = new Stripe(process.env["STRIPE_SECRET_KEY"] || "", { apiVersion: "2024-08-01" })
-
 export async function POST(request: NextRequest) {
+  const stripeSecret = process.env["STRIPE_SECRET_KEY"]?.trim()
+  if (!stripeSecret) {
+    return NextResponse.json({ error: "Stripe is not configured" }, { status: 500 })
+  }
+  const stripe = new Stripe(stripeSecret, { apiVersion: "2024-08-01" })
   try {
     const body = await request.json()
     const { email, fullName, phone, address, city, state, country, items, subtotal, shippingFee, totalAmount, currency } = body
