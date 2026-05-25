@@ -116,6 +116,7 @@ function useLocalStorage<T>(
   initial: T,
 ): [T, (val: T | ((prev: T) => T)) => void] {
   const [value, setValue] = useState<T>(() => {
+    if (typeof window === "undefined") return initial
     try {
       const item = window.localStorage.getItem(key);
       return item ? JSON.parse(item) : initial;

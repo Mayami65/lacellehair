@@ -342,34 +342,23 @@ function useLocalStorage<T>(
   key: string,
   initial: T,
 ): [T, (val: T | ((prev: T) => T)) => void] {
-  const [value, setValue] = useState<T>(initial);
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      try {
-        const item = window.localStorage.getItem(key);
-        if (item) {
-          setValue(JSON.parse(item));
-        }
-      } catch {
-        // Ignore storage read failures and keep the initial value.
-      } finally {
-        setHydrated(true);
-      }
-    }, 0);
-
-    return () => clearTimeout(timer);
-  }, [key]);
-
-  useEffect(() => {
-    if (!hydrated) return;
+  const [value, setValue] = useState<T>(() => {
+    if (typeof window === "undefined") return initial
     try {
-      window.localStorage.setItem(key, JSON.stringify(value));
-    } catch {}
-  }, [key, value, hydrated]);
+      const item = window.localStorage.getItem(key)
+      return item ? (JSON.parse(item) as T) : initial
+    } catch {
+      return initial
+    }
+  })
 
-  return [value, setValue];
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(key, JSON.stringify(value))
+    } catch {}
+  }, [key, value])
+
+  return [value, setValue]
 }
 
 /* ─────────── Components ─────────── */
@@ -3165,7 +3154,7 @@ function CartDrawer({
 
 export default function Home() {
   const router = useRouter();
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useLocalStorage<CartItem[]>("lacelle-cart", []);
   const [cartOpen, setCartOpen] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [products, setProducts] = useState<ProductType[]>(FALLBACK_PRODUCTS);
