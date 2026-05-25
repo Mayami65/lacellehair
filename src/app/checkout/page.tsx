@@ -184,9 +184,9 @@ function CheckoutContent() {
         return;
       }
 
-      if (data.authorization_url) {
+      if (data.paymentUrl) {
         localStorage.removeItem("lacelle-cart");
-        window.location.assign(data.authorization_url);
+        window.location.assign(data.paymentUrl);
         return;
       }
 
