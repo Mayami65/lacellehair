@@ -1,141 +1,60 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { cancelStalePendingOrder } from "@/lib/orderStatus";
+import { NextRequest, NextResponse } from "next/server"
+import { db, schema } from "@/lib/db"
+import { cancelStalePendingOrder } from "@/lib/orderStatus"
+import { eq } from "drizzle-orm"
 
-// GET /api/checkout/verify?reference=xxx — Verify payment status
+const { Order: OrderTable, Settings: SettingsTable } = schema
+
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const reference = searchParams.get("reference");
+    const { searchParams } = new URL(request.url)
+    const reference = searchParams.get("reference")
 
     if (!reference) {
-      return NextResponse.json({ error: "Missing reference" }, { status: 400 });
+      return NextResponse.json({ error: "Reference is required" }, { status: 400 })
     }
 
-    await cancelStalePendingOrder(reference);
+    const [order] = await db.select().from(OrderTable).where(eq(OrderTable.reference, reference))
 
-    // Get Paystack keys from settings
-    const settings = await db.settings.findMany();
-    const settingsMap: Record<string, string> = {};
-    for (const s of settings) settingsMap[s.key] = s.value;
-
-    const secretKey = settingsMap.paystack_secret_key || process.env.PAYSTACK_SECRET_KEY || "";
-    if (!secretKey) {
-      return NextResponse.json({ error: "Paystack not configured" }, { status: 500 });
+    if (!order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 })
     }
 
-    // Verify transaction with Paystack
-    const paystackRes = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
+    // If already paid, return order
+    if (order.status === "paid" || order.status === "shipped" || order.status === "delivered") {
+      return NextResponse.json({ status: "success", order })
+    }
+
+    // Verify with Paystack
+    const [setting] = await db.select({ value: SettingsTable.value })
+      .from(SettingsTable)
+      .where(eq(SettingsTable.key, "paystack_secret_key"))
+    const secretKey = setting?.value || process.env["PAYSTACK_SECRET_KEY"] || ""
+
+    const verifyRes = await fetch(`https://api.paystack.co/transaction/verify/${reference}`, {
       headers: { Authorization: `Bearer ${secretKey}` },
-    });
+    })
+    const verifyData = await verifyRes.json()
 
-    const paystackData = await paystackRes.json();
+    if (verifyData.status && verifyData.data.status === "success") {
+      // Mark as paid
+      const [updated] = await db.update(OrderTable)
+        .set({ status: "paid", paystackRef: reference, paidAt: new Date().toISOString(), updatedAt: new Date().toISOString() })
+        .where(eq(OrderTable.id, order.id))
+        .returning()
 
-    if (!paystackData.status) {
-      return NextResponse.json({ error: "Verification failed", status: "failed" }, { status: 400 });
+      return NextResponse.json({ status: "success", order: updated })
     }
 
-    const transaction = paystackData.data;
-
-    // Update order status
-    if (transaction.status === "success" && transaction.reference) {
-      await db.order.updateMany({
-        where: { reference: transaction.reference },
-        data: {
-          status: "paid",
-          paystackRef: transaction.reference,
-          paidAt: new Date(),
-        },
-      });
-    } else if (transaction.reference && ["failed", "abandoned", "cancelled"].includes(transaction.status)) {
-      await db.order.updateMany({
-        where: { reference: transaction.reference },
-        data: {
-          status: transaction.status === "abandoned" ? "cancelled" : transaction.status,
-        },
-      });
-    }
+    // Check for stale pending orders
+    const updated = await cancelStalePendingOrder(reference)
 
     return NextResponse.json({
-      status: transaction.status,
-      reference: transaction.reference,
-      amount: transaction.amount,
-      paid_at: transaction.paid_at,
-      channel: transaction.channel,
-    });
+      status: order.status,
+      order: updated || order,
+    })
   } catch (error) {
-    console.error("GET /api/checkout/verify error:", error);
-    return NextResponse.json({ error: "Verification failed" }, { status: 500 });
-  }
-}
-
-// POST /api/checkout/verify — Paystack webhook handler
-export async function POST(request: NextRequest) {
-  try {
-    // Read raw body to verify Paystack signature
-    const rawBody = await request.text();
-    const signature = request.headers.get("x-paystack-signature") || "";
-
-    // Get Paystack keys from settings or env
-    const settings = await db.settings.findMany();
-    const settingsMap: Record<string, string> = {};
-    for (const s of settings) settingsMap[s.key] = s.value;
-    const secretKey = settingsMap.paystack_secret_key || process.env.PAYSTACK_SECRET_KEY || "";
-
-    // If no secret key, accept but do not process (log)
-    if (!secretKey) {
-      console.warn("Paystack webhook received but no secret key configured");
-      return NextResponse.json({ received: true });
-    }
-
-    // Verify signature (HMAC SHA512 of raw body)
-    try {
-      const crypto = await import("crypto");
-      const expected = crypto.createHmac("sha512", secretKey).update(rawBody).digest("hex");
-
-      if (signature && signature !== expected) {
-        console.warn("Invalid Paystack webhook signature");
-        return NextResponse.json({ received: true });
-      }
-    } catch (err) {
-      console.warn("Failed to verify Paystack signature", err);
-      return NextResponse.json({ received: true });
-    }
-
-    const body = JSON.parse(rawBody);
-
-    // Paystack webhook sends the event data
-    if (body.event === "charge.success") {
-      const data = body.data;
-      const reference = data.reference;
-
-      if (reference) {
-        await db.order.updateMany({
-          where: { reference },
-          data: {
-            status: "paid",
-            paystackRef: reference,
-            paidAt: new Date(),
-          },
-        });
-      }
-    } else if (body.event === "charge.failed" || body.event === "charge.abandoned") {
-      const data = body.data;
-      const reference = data.reference;
-
-      if (reference) {
-        await db.order.updateMany({
-          where: { reference },
-          data: {
-            status: body.event === "charge.abandoned" ? "cancelled" : "failed",
-          },
-        });
-      }
-    }
-
-    return NextResponse.json({ received: true });
-  } catch (error) {
-    console.error("POST /api/checkout/verify webhook error:", error);
-    return NextResponse.json({ received: true }); // Always 200 for webhooks
+    console.error("GET /api/checkout/verify error:", error)
+    return NextResponse.json({ error: "Verification failed" }, { status: 500 })
   }
 }

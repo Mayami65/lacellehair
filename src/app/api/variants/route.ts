@@ -1,115 +1,102 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { validateToken } from "@/lib/adminAuth";
+import { NextRequest, NextResponse } from "next/server"
+import { db, schema } from "@/lib/db"
+import { validateToken } from "@/lib/adminAuth"
+import { eq } from "drizzle-orm"
+
+const { ProductVariant } = schema
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const productId = searchParams.get("productId");
+    const { searchParams } = new URL(request.url)
+    const productId = searchParams.get("productId")
 
-    const where: Record<string, unknown> = {};
-    if (productId) {
-      where.productId = productId;
+    if (!productId) {
+      return NextResponse.json({ error: "productId is required" }, { status: 400 })
     }
 
-    const variants = await db.productVariant.findMany({
-      where,
-      orderBy: { createdAt: "asc" },
-    });
+    const variants = await db.select().from(ProductVariant)
+      .where(eq(ProductVariant.productId, productId))
 
-    return NextResponse.json(variants);
+    return NextResponse.json(variants)
   } catch (error) {
-    console.error("GET /api/variants error:", error);
-    return NextResponse.json({ error: "Failed to fetch variants" }, { status: 500 });
+    console.error("GET /api/variants error:", error)
+    return NextResponse.json({ error: "Failed to fetch variants" }, { status: 500 })
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
-    const cookie = request.headers.get("cookie") || "";
-    const m = cookie.match(/lacelle_admin_token=([^;]+)/);
-    const token = m ? m[1] : undefined;
-    if (!validateToken(token)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    const cookie = request.headers.get("cookie") || ""
+    const m = cookie.match(/lacelle_admin_token=([^;]+)/)
+    const token = m ? m[1] : undefined
+    if (!validateToken(token)) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
 
-    const body = await request.json();
+    const body = await request.json()
+    const now = new Date().toISOString()
 
-    if (!body.productId || body.price === undefined) {
-      return NextResponse.json({ error: "productId and price are required" }, { status: 400 });
-    }
+    const [variant] = await db.insert(ProductVariant).values({
+      productId: body.productId,
+      length: body.length || "",
+      color: body.color || "",
+      price: Number(body.price) || 0,
+      originalPrice: body.originalPrice ? Number(body.originalPrice) : null,
+      stock: Number(body.stock) || 50,
+      sku: body.sku || "",
+      active: body.active !== false,
+      createdAt: now,
+      updatedAt: now,
+    } as any).returning()
 
-    const variant = await db.productVariant.create({
-      data: {
-        productId: body.productId,
-        length: body.length || "",
-        color: body.color || "",
-        price: Number(body.price) || 0,
-        originalPrice: body.originalPrice ? Number(body.originalPrice) : null,
-        stock: Number(body.stock) || 50,
-        sku: body.sku || "",
-        active: body.active !== false,
-      },
-    });
-
-    return NextResponse.json(variant, { status: 201 });
+    return NextResponse.json(variant, { status: 201 })
   } catch (error) {
-    console.error("POST /api/variants error:", error);
-    return NextResponse.json({ error: "Failed to create variant" }, { status: 500 });
+    console.error("POST /api/variants error:", error)
+    return NextResponse.json({ error: "Failed to create variant" }, { status: 500 })
   }
 }
 
 export async function PUT(request: NextRequest) {
   try {
-    const cookie = request.headers.get("cookie") || "";
-    const m = cookie.match(/lacelle_admin_token=([^;]+)/);
-    const token = m ? m[1] : undefined;
-    if (!validateToken(token)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    const cookie = request.headers.get("cookie") || ""
+    const m = cookie.match(/lacelle_admin_token=([^;]+)/)
+    const token = m ? m[1] : undefined
+    if (!validateToken(token)) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
 
-    const body = await request.json();
-    const { id, ...data } = body;
+    const body = await request.json()
+    const { id, ...data } = body
+    if (!id) return NextResponse.json({ error: "Variant ID is required" }, { status: 400 })
 
-    if (!id) {
-      return NextResponse.json({ error: "Variant ID is required" }, { status: 400 });
-    }
+    const set: any = { updatedAt: new Date().toISOString() }
+    if (data.length !== undefined) set.length = data.length
+    if (data.color !== undefined) set.color = data.color
+    if (data.price !== undefined) set.price = Number(data.price)
+    if (data.originalPrice !== undefined) set.originalPrice = data.originalPrice ? Number(data.originalPrice) : null
+    if (data.stock !== undefined) set.stock = Number(data.stock)
+    if (data.sku !== undefined) set.sku = data.sku
+    if (data.active !== undefined) set.active = Boolean(data.active)
 
-    const updateData: Record<string, unknown> = {};
-    if (data.length !== undefined) updateData.length = data.length;
-    if (data.color !== undefined) updateData.color = data.color;
-    if (data.price !== undefined) updateData.price = Number(data.price);
-    if (data.originalPrice !== undefined) updateData.originalPrice = data.originalPrice ? Number(data.originalPrice) : null;
-    if (data.stock !== undefined) updateData.stock = Number(data.stock);
-    if (data.sku !== undefined) updateData.sku = data.sku;
-    if (data.active !== undefined) updateData.active = Boolean(data.active);
-
-    const variant = await db.productVariant.update({
-      where: { id },
-      data: updateData,
-    });
-
-    return NextResponse.json(variant);
+    const [variant] = await db.update(ProductVariant).set(set).where(eq(ProductVariant.id, id)).returning()
+    return NextResponse.json(variant)
   } catch (error) {
-    console.error("PUT /api/variants error:", error);
-    return NextResponse.json({ error: "Failed to update variant" }, { status: 500 });
+    console.error("PUT /api/variants error:", error)
+    return NextResponse.json({ error: "Failed to update variant" }, { status: 500 })
   }
 }
 
 export async function DELETE(request: NextRequest) {
   try {
-    const cookie = request.headers.get("cookie") || "";
-    const m = cookie.match(/lacelle_admin_token=([^;]+)/);
-    const token = m ? m[1] : undefined;
-    if (!validateToken(token)) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+    const cookie = request.headers.get("cookie") || ""
+    const m = cookie.match(/lacelle_admin_token=([^;]+)/)
+    const token = m ? m[1] : undefined
+    if (!validateToken(token)) return NextResponse.json({ error: "unauthorized" }, { status: 401 })
 
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get("id")
+    if (!id) return NextResponse.json({ error: "Variant ID is required" }, { status: 400 })
 
-    if (!id) {
-      return NextResponse.json({ error: "Variant ID is required" }, { status: 400 });
-    }
-
-    await db.productVariant.delete({ where: { id } });
-    return NextResponse.json({ success: true });
+    await db.delete(ProductVariant).where(eq(ProductVariant.id, id))
+    return NextResponse.json({ success: true })
   } catch (error) {
-    console.error("DELETE /api/variants error:", error);
-    return NextResponse.json({ error: "Failed to delete variant" }, { status: 500 });
+    console.error("DELETE /api/variants error:", error)
+    return NextResponse.json({ error: "Failed to delete variant" }, { status: 500 })
   }
 }

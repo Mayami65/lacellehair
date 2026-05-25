@@ -1,58 +1,54 @@
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { NextRequest, NextResponse } from "next/server"
+import { db, schema } from "@/lib/db"
+import { eq } from "drizzle-orm"
 
-// POST /api/checkout — Initialize a Paystack transaction
+const { Order: OrderTable, Settings: SettingsTable } = schema
+
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { email, fullName, phone, address, city, state, country, items, subtotal, shippingFee, totalAmount, currency } = body;
+    const body = await request.json()
 
-    // Validation
-    if (!email || !fullName || !phone || !items || !totalAmount) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    if (!body.items || !body.email || !body.fullName || !body.phone) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
-    if (!Array.isArray(items) || items.length === 0) {
-      return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
-    }
+    const reference = `LAC-${Date.now()}-${Math.random().toString(36).slice(2, 9).toUpperCase()}`
+    const now = new Date().toISOString()
 
-    // Generate a unique order reference
-    const reference = `LAC-${Date.now()}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    // Read Paystack key from settings or env
+    const [setting] = await db.select({ value: SettingsTable.value })
+      .from(SettingsTable)
+      .where(eq(SettingsTable.key, "paystack_secret_key"))
+    const secretKey = setting?.value || process.env["PAYSTACK_SECRET_KEY"] || ""
 
-    // Get Paystack keys from settings (fall back to env vars)
-    const settings = await db.settings.findMany();
-    const settingsMap: Record<string, string> = {};
-    for (const s of settings) settingsMap[s.key] = s.value;
+    const subtotal = body.items.reduce((sum: number, item: any) => sum + item.price * item.quantity, 0)
+    const shippingFee = body.shippingFee || 0
+    const totalAmount = subtotal + shippingFee
 
-    const secretKey = settingsMap.paystack_secret_key || process.env.PAYSTACK_SECRET_KEY || "";
-    if (!secretKey) {
-      return NextResponse.json({ error: "Paystack is not configured. Please add your secret key in admin settings." }, { status: 500 });
-    }
-
-    const paystackCurrency = currency || "GHS";
-
-    // Create order in DB as "pending"
-    const order = await db.order.create({
-      data: {
-        reference,
-        email,
-        fullName,
-        phone,
-        address: address || "",
-        city: city || "",
-        state: state || "",
-        country: country || "Ghana",
-        items: JSON.stringify(items),
-        subtotal,
-        shippingFee: shippingFee || 0,
-        totalAmount,
-        currency: paystackCurrency,
-        status: "pending",
-        paymentMethod: "paystack",
-      },
-    });
+    // Create order in DB
+    const [order] = await db.insert(OrderTable).values({
+      reference,
+      email: body.email.toLowerCase().trim(),
+      fullName: body.fullName,
+      phone: body.phone,
+      address: body.address || "",
+      city: body.city || "",
+      state: body.state || "",
+      country: body.country || "Ghana",
+      items: JSON.stringify(body.items),
+      subtotal,
+      shippingFee,
+      totalAmount,
+      currency: body.currency || "GHS",
+      paystackRef: "",
+      status: "pending",
+      paymentMethod: body.paymentMethod || "paystack",
+      createdAt: now,
+      updatedAt: now,
+    } as any).returning()
 
     // Initialize Paystack transaction
+    const callbackUrl = `${process.env["NEXT_PUBLIC_BASE_URL"] || process.env["NEXTAUTH_URL"] || ""}/checkout/success?reference=${reference}`
     const paystackRes = await fetch("https://api.paystack.co/transaction/initialize", {
       method: "POST",
       headers: {
@@ -60,42 +56,27 @@ export async function POST(request: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        email,
-        amount: Math.round(totalAmount * 100), // Paystack expects kobo/cents
-        currency: paystackCurrency,
+        email: order.email,
+        amount: Math.round(totalAmount * 100), // Paystack uses kobo/pesewas
         reference,
-        metadata: {
-          order_id: order.id,
-          reference,
-          fullName,
-          phone,
-          items: items.map((i: Record<string, unknown>) => ({
-            name: i.name,
-            length: i.length || null,
-            color: i.color || null,
-            price: i.price,
-            quantity: i.quantity,
-          })),
-        },
-        callback_url: `${process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || ""}/checkout/success?reference=${reference}`,
+        callback_url: callbackUrl,
+        metadata: { orderId: order.id },
       }),
-    });
+    })
 
-    const paystackData = await paystackRes.json();
+    const paystackData = await paystackRes.json()
 
-    if (!paystackData.status) {
-      // Clean up the pending order
-      await db.order.delete({ where: { id: order.id } });
-      return NextResponse.json({ error: paystackData.message || "Paystack initialization failed" }, { status: 500 });
+    if (paystackData.status) {
+      return NextResponse.json({
+        success: true,
+        reference,
+        paymentUrl: paystackData.data.authorization_url,
+      })
     }
 
-    return NextResponse.json({
-      authorization_url: paystackData.data.authorization_url,
-      reference: paystackData.data.reference,
-      access_code: paystackData.data.access_code,
-    });
+    return NextResponse.json({ success: false, error: "Payment initialization failed" }, { status: 500 })
   } catch (error) {
-    console.error("POST /api/checkout error:", error);
-    return NextResponse.json({ error: "Checkout failed" }, { status: 500 });
+    console.error("POST /api/checkout error:", error)
+    return NextResponse.json({ error: "Checkout failed" }, { status: 500 })
   }
 }
