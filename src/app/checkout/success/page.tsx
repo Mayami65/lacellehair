@@ -341,7 +341,9 @@ function SuccessContent() {
                 </p>
                 <p className="text-sm text-white">
                   Tracking number:{" "}
-                  {lookupResult.trackingNumber || "Not assigned yet"}
+                  {lookupResult.trackingNumber
+                    ? lookupResult.trackingNumber
+                    : "Pending — assigned once your order ships"}
                 </p>
               </div>
             )}

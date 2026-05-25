@@ -202,7 +202,7 @@ function TrackOrderContent() {
                     : "Not yet paid"}
                 </p>
                 <p className="text-sm text-white">
-                  Tracking number: {result.trackingNumber || "Not assigned yet"}
+                  Tracking number: {result.trackingNumber || "Pending — assigned once your order ships"}
                 </p>
               </div>
             )}
