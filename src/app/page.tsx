@@ -665,11 +665,6 @@ function Navbar({
 }) {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -770,7 +765,7 @@ function Navbar({
                 onClick={onWishlistOpen}
               >
                 <Heart className="w-5 h-5" />
-                {mounted && wishlistCount > 0 && (
+                {wishlistCount > 0 && (
                   <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-pink text-white text-[10px] font-bold flex items-center justify-center pink-glow">
                     {wishlistCount}
                   </span>
@@ -783,8 +778,8 @@ function Navbar({
                 onClick={onCartOpen}
               >
                 <ShoppingBag className="w-5 h-5" />
-                {mounted && cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-pink text-white text-[10px] font-bold flex items-center justify-center pink-glow">
+                {cartCount > 0 && (
+                  <span suppressHydrationWarning className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-pink text-white text-[10px] font-bold flex items-center justify-center pink-glow">
                     {cartCount}
                   </span>
                 )}
@@ -1010,66 +1005,66 @@ function CategoriesSection({
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
   const mobile = useIsMobile();
-  return (
-    <section id="categories" className="py-20 md:py-28 bg-luxury-black">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <SectionHeading
-          subtitle="Collections"
-          title="Shop by Category"
-          description="Explore our curated collections of premium hair extensions and accessories, designed to help you achieve your perfect look"
-        />
-        <div
-          ref={ref}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6"
-        >
-          {CATEGORIES.map((cat, i) => (
-            <motion.div
-              key={cat.name}
-              initial={mobile ? false : { opacity: 0, y: 40 }}
-              animate={isInView || mobile ? { opacity: 1, y: 0 } : {}}
-              transition={{
-                duration: mobile ? 0.15 : 0.5,
-                delay: mobile ? 0 : i * 0.15,
-              }}
-              className="group relative cursor-pointer"
-              onClick={() => onCategoryClick(cat.name)}
-            >
-              <div className="relative aspect-[3/4] rounded-2xl overflow-hidden">
-                <img
-                  src={cat.image}
-                  alt={cat.name}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-luxury-black via-luxury-black/40 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
-                <div className="absolute inset-0 bg-pink/0 group-hover:bg-pink/10 transition-colors duration-500" />
-                <div className="absolute inset-0 flex flex-col justify-end p-5 md:p-6">
-                  <Badge
-                    variant="secondary"
-                    className="w-fit bg-white/10 backdrop-blur-sm border-white/20 text-white text-xs mb-3"
-                  >
-                    {cat.count} Products
-                  </Badge>
-                  <h3
-                    className="text-xl md:text-2xl font-bold text-white mb-1"
-                    style={{ fontFamily: "var(--font-display)" }}
-                  >
-                    {cat.name}
-                  </h3>
-                  <p className="text-white/60 text-sm mb-4 line-clamp-2">
-                    {cat.description}
-                  </p>
-                  <div className="flex items-center gap-2 text-pink-light text-sm font-medium group-hover:gap-3 transition-all">
-                    <span>Shop Now</span>
-                    <ChevronRight className="w-4 h-4" />
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
+  // return (
+  //   <section id="categories" className="py-20 md:py-28 bg-luxury-black">
+  //     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  //       <SectionHeading
+  //         subtitle="Collections"
+  //         title="Shop by Category"
+  //         description="Explore our curated collections of premium hair extensions and accessories, designed to help you achieve your perfect look"
+  //       />
+  //       <div
+  //         ref={ref}
+  //         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 md:gap-6"
+  //       >
+  //         {CATEGORIES.map((cat, i) => (
+  //           <motion.div
+  //             key={cat.name}
+  //             initial={mobile ? false : { opacity: 0, y: 40 }}
+  //             animate={isInView || mobile ? { opacity: 1, y: 0 } : {}}
+  //             transition={{
+  //               duration: mobile ? 0.15 : 0.5,
+  //               delay: mobile ? 0 : i * 0.15,
+  //             }}
+  //             className="group relative cursor-pointer"
+  //             onClick={() => onCategoryClick(cat.name)}
+  //           >
+  //             <div className="relative aspect-[3/4] rounded-2xl overflow-hidden">
+  //               <img
+  //                 src={cat.image}
+  //                 alt={cat.name}
+  //                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+  //               />
+  //               <div className="absolute inset-0 bg-gradient-to-t from-luxury-black via-luxury-black/40 to-transparent opacity-60 group-hover:opacity-80 transition-opacity duration-500" />
+  //               <div className="absolute inset-0 bg-pink/0 group-hover:bg-pink/10 transition-colors duration-500" />
+  //               <div className="absolute inset-0 flex flex-col justify-end p-5 md:p-6">
+  //                 <Badge
+  //                   variant="secondary"
+  //                   className="w-fit bg-white/10 backdrop-blur-sm border-white/20 text-white text-xs mb-3"
+  //                 >
+  //                   {cat.count} Products
+  //                 </Badge>
+  //                 <h3
+  //                   className="text-xl md:text-2xl font-bold text-white mb-1"
+  //                   style={{ fontFamily: "var(--font-display)" }}
+  //                 >
+  //                   {cat.name}
+  //                 </h3>
+  //                 <p className="text-white/60 text-sm mb-4 line-clamp-2">
+  //                   {cat.description}
+  //                 </p>
+  //                 <div className="flex items-center gap-2 text-pink-light text-sm font-medium group-hover:gap-3 transition-all">
+  //                   <span>Shop Now</span>
+  //                   <ChevronRight className="w-4 h-4" />
+  //                 </div>
+  //               </div>
+  //             </div>
+  //           </motion.div>
+  //         ))}
+  //       </div>
+  //     </div>
+  //   </section>
+  // );
 }
 
 /* ─────────── Stock Badge ─────────── */
@@ -3168,8 +3163,6 @@ export default function Home() {
   const [reviewOpen, setReviewOpen] = useState(false);
   const [reviewProductId, setReviewProductId] = useState<string | undefined>();
 
-  const [mounted, setMounted] = useState(false);
-
   // Feature 1: Search
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -3252,10 +3245,6 @@ export default function Home() {
   }, []);
 
   // Fetch ALL settings from API (used everywhere)
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   useEffect(() => {
     fetch("/api/settings")
       .then((r) => r.json())
