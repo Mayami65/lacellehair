@@ -39,9 +39,10 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Read env vars via dynamic keys so Turbopack cannot inline them at build time.
+// Read env vars via Object.entries — Turbopack cannot statically trace this.
 function env(key: string) {
-  return process.env[key]
+  const entry = Object.entries(process.env).find(([k]) => k === key)
+  return entry ? entry[1] : undefined
 }
 
 export const db =
