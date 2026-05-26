@@ -11,8 +11,6 @@ import {
   Lock,
   ChevronRight,
   CreditCard,
-  Smartphone,
-  Building,
   CheckCircle,
   Loader2,
   Crown,
@@ -87,12 +85,8 @@ function CheckoutContent() {
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [company, setCompany] = useState("");
-  const [vatNumber, setVatNumber] = useState("");
-
   // Shipping address
   const [address, setAddress] = useState("");
-  const [apartment, setApartment] = useState("");
   const [postalCode, setPostalCode] = useState("");
   const [city, setCity] = useState("");
   const [country, setCountry] = useState("Belgium");
@@ -140,13 +134,11 @@ function CheckoutContent() {
       quantity: item.quantity,
     }));
 
-    const fullAddress = [address.trim(), apartment.trim()].filter(Boolean).join(", ")
-
     return {
       email: email.trim(),
       fullName: `${firstName.trim()} ${lastName.trim()}`,
       phone: phone.trim(),
-      address: fullAddress,
+      address: address.trim(),
       city: city.trim(),
       state: postalCode.trim(),
       country: country.trim(),
@@ -155,8 +147,6 @@ function CheckoutContent() {
       shippingFee,
       totalAmount: total,
       currency,
-      company: company.trim(),
-      vatNumber: vatNumber.trim(),
     };
   };
 
@@ -450,28 +440,10 @@ function CheckoutContent() {
                 style={{ backgroundColor: "#111111" }}
               >
                 <h2 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
-                  <Building className="w-5 h-5 text-gold" />
-                  Billing &amp; Shipping Address
+                  <Package className="w-5 h-5 text-gold" />
+                  Shipping Address
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="sm:col-span-2">
-                    <label className="text-sm text-white/70 mb-1.5 block">Company (optional)</label>
-                    <Input
-                      placeholder="Company name"
-                      value={company}
-                      onChange={(e) => setCompany(e.target.value)}
-                      className="bg-luxury-gray border-luxury-border text-white placeholder:text-white/30 h-12 rounded-xl"
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
-                    <label className="text-sm text-white/70 mb-1.5 block">VAT Number (optional)</label>
-                    <Input
-                      placeholder="BE 0123.456.789"
-                      value={vatNumber}
-                      onChange={(e) => setVatNumber(e.target.value)}
-                      className="bg-luxury-gray border-luxury-border text-white placeholder:text-white/30 h-12 rounded-xl"
-                    />
-                  </div>
                   <div className="sm:col-span-2">
                     <label className="text-sm text-white/70 mb-1.5 block">Street Address *</label>
                     <div className="relative">
@@ -484,15 +456,6 @@ function CheckoutContent() {
                         className="pl-10 bg-luxury-gray border-luxury-border text-white placeholder:text-white/30 h-12 rounded-xl"
                       />
                     </div>
-                  </div>
-                  <div>
-                    <label className="text-sm text-white/70 mb-1.5 block">Apartment, Suite, etc.</label>
-                    <Input
-                      placeholder="Apt 4B"
-                      value={apartment}
-                      onChange={(e) => setApartment(e.target.value)}
-                      className="bg-luxury-gray border-luxury-border text-white placeholder:text-white/30 h-12 rounded-xl"
-                    />
                   </div>
                   <div>
                     <label className="text-sm text-white/70 mb-1.5 block">Postal Code *</label>
