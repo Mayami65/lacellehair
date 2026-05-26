@@ -83,12 +83,18 @@ function CheckoutContent() {
   >("paystack");
 
   // Customer info
-  const [fullName, setFullName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+  const [company, setCompany] = useState("");
+  const [vatNumber, setVatNumber] = useState("");
+
+  // Shipping address
   const [address, setAddress] = useState("");
+  const [apartment, setApartment] = useState("");
+  const [postalCode, setPostalCode] = useState("");
   const [city, setCity] = useState("");
-  const [state, setState] = useState("");
   const [country, setCountry] = useState("Belgium");
 
   // Currency
@@ -134,19 +140,23 @@ function CheckoutContent() {
       quantity: item.quantity,
     }));
 
+    const fullAddress = [address.trim(), apartment.trim()].filter(Boolean).join(", ")
+
     return {
       email: email.trim(),
-      fullName: fullName.trim(),
+      fullName: `${firstName.trim()} ${lastName.trim()}`,
       phone: phone.trim(),
-      address: address.trim(),
+      address: fullAddress,
       city: city.trim(),
-      state: state.trim(),
+      state: postalCode.trim(),
       country: country.trim(),
       items,
       subtotal,
       shippingFee,
       totalAmount: total,
       currency,
+      company: company.trim(),
+      vatNumber: vatNumber.trim(),
     };
   };
 
@@ -156,8 +166,23 @@ function CheckoutContent() {
       return false;
     }
 
-    if (!fullName.trim() || !email.trim() || !phone.trim()) {
-      toast.error("Please fill in your name, email, and phone number");
+    if (!firstName.trim() || !lastName.trim()) {
+      toast.error("Please enter your first and last name");
+      return false;
+    }
+
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      toast.error("Please enter a valid email address");
+      return false;
+    }
+
+    if (!phone.trim()) {
+      toast.error("Please enter your phone number");
+      return false;
+    }
+
+    if (!address.trim() || !city.trim() || !postalCode.trim()) {
+      toast.error("Please fill in your full delivery address");
       return false;
     }
 
@@ -352,7 +377,7 @@ function CheckoutContent() {
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
             {/* Left: Form */}
             <div className="lg:col-span-3 space-y-6">
-              {/* Customer Info */}
+              {/* Contact Information */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -365,31 +390,33 @@ function CheckoutContent() {
                   Contact Information
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="sm:col-span-2">
-                    <label className="text-sm text-white/70 mb-1.5 block">
-                      Full Name *
-                    </label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                      <Input
-                        type="text"
-                        placeholder="Enter your full name"
-                        value={fullName}
-                        onChange={(e) => setFullName(e.target.value)}
-                        required
-                        className="pl-10 bg-luxury-gray border-luxury-border text-white placeholder:text-white/30 h-12 rounded-xl"
-                      />
-                    </div>
+                  <div>
+                    <label className="text-sm text-white/70 mb-1.5 block">First Name *</label>
+                    <Input
+                      placeholder="Marie"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      required
+                      className="bg-luxury-gray border-luxury-border text-white placeholder:text-white/30 h-12 rounded-xl"
+                    />
                   </div>
                   <div>
-                    <label className="text-sm text-white/70 mb-1.5 block">
-                      Email Address *
-                    </label>
+                    <label className="text-sm text-white/70 mb-1.5 block">Last Name *</label>
+                    <Input
+                      placeholder="Dubois"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      required
+                      className="bg-luxury-gray border-luxury-border text-white placeholder:text-white/30 h-12 rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-white/70 mb-1.5 block">Email Address *</label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                       <Input
                         type="email"
-                        placeholder="your@email.com"
+                        placeholder="marie@email.com"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         required
@@ -398,14 +425,12 @@ function CheckoutContent() {
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm text-white/70 mb-1.5 block">
-                      Phone Number *
-                    </label>
+                    <label className="text-sm text-white/70 mb-1.5 block">Phone Number *</label>
                     <div className="relative">
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
                       <Input
                         type="tel"
-                        placeholder="+233 XX XXX XXXX"
+                        placeholder="+32 470 12 34 56"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value)}
                         required
@@ -416,97 +441,99 @@ function CheckoutContent() {
                 </div>
               </motion.div>
 
-              {/* Shipping Address */}
+              {/* Billing & Shipping Address */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.2 }}
+                transition={{ duration: 0.4, delay: 0.15 }}
                 className="rounded-2xl border border-luxury-border p-6"
                 style={{ backgroundColor: "#111111" }}
               >
                 <h2 className="text-lg font-bold text-white mb-5 flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-pink" />
-                  Delivery Address
+                  <Building className="w-5 h-5 text-gold" />
+                  Billing &amp; Shipping Address
                 </h2>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="sm:col-span-2">
-                    <label className="text-sm text-white/70 mb-1.5 block">
-                      Street Address
-                    </label>
+                    <label className="text-sm text-white/70 mb-1.5 block">Company (optional)</label>
+                    <Input
+                      placeholder="Company name"
+                      value={company}
+                      onChange={(e) => setCompany(e.target.value)}
+                      className="bg-luxury-gray border-luxury-border text-white placeholder:text-white/30 h-12 rounded-xl"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="text-sm text-white/70 mb-1.5 block">VAT Number (optional)</label>
+                    <Input
+                      placeholder="BE 0123.456.789"
+                      value={vatNumber}
+                      onChange={(e) => setVatNumber(e.target.value)}
+                      className="bg-luxury-gray border-luxury-border text-white placeholder:text-white/30 h-12 rounded-xl"
+                    />
+                  </div>
+                  <div className="sm:col-span-2">
+                    <label className="text-sm text-white/70 mb-1.5 block">Street Address *</label>
                     <div className="relative">
                       <MapPin className="absolute left-3 top-3 w-4 h-4 text-white/30" />
                       <Input
-                        type="text"
-                        placeholder="House number, street name"
+                        placeholder="Rue de la Loi 16"
                         value={address}
                         onChange={(e) => setAddress(e.target.value)}
+                        required
                         className="pl-10 bg-luxury-gray border-luxury-border text-white placeholder:text-white/30 h-12 rounded-xl"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="text-sm text-white/70 mb-1.5 block">
-                      City
-                    </label>
+                    <label className="text-sm text-white/70 mb-1.5 block">Apartment, Suite, etc.</label>
                     <Input
-                      type="text"
-                      placeholder="Accra"
+                      placeholder="Apt 4B"
+                      value={apartment}
+                      onChange={(e) => setApartment(e.target.value)}
+                      className="bg-luxury-gray border-luxury-border text-white placeholder:text-white/30 h-12 rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-white/70 mb-1.5 block">Postal Code *</label>
+                    <Input
+                      placeholder="1000"
+                      value={postalCode}
+                      onChange={(e) => setPostalCode(e.target.value)}
+                      required
+                      className="bg-luxury-gray border-luxury-border text-white placeholder:text-white/30 h-12 rounded-xl"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-white/70 mb-1.5 block">City *</label>
+                    <Input
+                      placeholder="Brussels"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
+                      required
                       className="bg-luxury-gray border-luxury-border text-white placeholder:text-white/30 h-12 rounded-xl"
                     />
                   </div>
                   <div>
-                    <label className="text-sm text-white/70 mb-1.5 block">
-                      Region / State
-                    </label>
-                    <Input
-                      type="text"
-                      placeholder="Greater Accra"
-                      value={state}
-                      onChange={(e) => setState(e.target.value)}
-                      className="bg-luxury-gray border-luxury-border text-white placeholder:text-white/30 h-12 rounded-xl"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm text-white/70 mb-1.5 block">
-                      Country
-                    </label>
+                    <label className="text-sm text-white/70 mb-1.5 block">Country *</label>
                     <select
                       value={country}
                       onChange={(e) => setCountry(e.target.value)}
                       className="w-full bg-luxury-gray border border-luxury-border rounded-xl h-12 px-3 text-white outline-none focus:border-gold/50 transition-colors cursor-pointer"
                     >
-                      <option value="Belgium" className="bg-luxury-dark">
-                        Belgium
-                      </option>
-                      <option value="France" className="bg-luxury-dark">
-                        France
-                      </option>
-                      <option value="Netherlands" className="bg-luxury-dark">
-                        Netherlands
-                      </option>
-                      <option value="Germany" className="bg-luxury-dark">
-                        Germany
-                      </option>
-                      <option value="Kenya" className="bg-luxury-dark">
-                        Kenya
-                      </option>
-                      <option value="South Africa" className="bg-luxury-dark">
-                        South Africa
-                      </option>
-                      <option value="United States" className="bg-luxury-dark">
-                        United States
-                      </option>
-                      <option value="United Kingdom" className="bg-luxury-dark">
-                        United Kingdom
-                      </option>
-                      <option value="Canada" className="bg-luxury-dark">
-                        Canada
-                      </option>
-                      <option value="Other" className="bg-luxury-dark">
-                        Other
-                      </option>
+                      <option value="Belgium" className="bg-luxury-dark">Belgium</option>
+                      <option value="Netherlands" className="bg-luxury-dark">Netherlands</option>
+                      <option value="Luxembourg" className="bg-luxury-dark">Luxembourg</option>
+                      <option value="France" className="bg-luxury-dark">France</option>
+                      <option value="Germany" className="bg-luxury-dark">Germany</option>
+                      <option value="Austria" className="bg-luxury-dark">Austria</option>
+                      <option value="Switzerland" className="bg-luxury-dark">Switzerland</option>
+                      <option value="Italy" className="bg-luxury-dark">Italy</option>
+                      <option value="Spain" className="bg-luxury-dark">Spain</option>
+                      <option value="United Kingdom" className="bg-luxury-dark">United Kingdom</option>
+                      <option value="United States" className="bg-luxury-dark">United States</option>
+                      <option value="Canada" className="bg-luxury-dark">Canada</option>
+                      <option value="Other" className="bg-luxury-dark">Other</option>
                     </select>
                   </div>
                 </div>
