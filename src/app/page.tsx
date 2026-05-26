@@ -13,6 +13,7 @@ import {
   Truck,
   Shield,
   Award,
+  ChevronLeft,
   ChevronRight,
   Instagram,
   Facebook,
@@ -1343,21 +1344,27 @@ function AboutSection() {
 function TestimonialsSection({ onWriteReview }: { onWriteReview: () => void }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-100px" });
-  const mobile = useIsMobile();
   const [activeIndex, setActiveIndex] = useState(0);
+  const [direction, setDirection] = useState(1);
+
+  const goTo = useCallback((next: number) => {
+    setDirection(next > activeIndex ? 1 : -1);
+    setActiveIndex(next);
+  }, [activeIndex]);
 
   useEffect(() => {
+    if (!isInView) return;
     const timer = setInterval(
-      () => setActiveIndex((prev) => (prev + 1) % TESTIMONIALS.length),
+      () => goTo((activeIndex + 1) % TESTIMONIALS.length),
       5000,
     );
     return () => clearInterval(timer);
-  }, []);
+  }, [activeIndex, isInView, goTo]);
 
   return (
     <section
       id="testimonials"
-      className="py-20 md:py-28 luxury-gradient relative"
+      className="py-20 md:py-28 luxury-gradient relative overflow-hidden"
     >
       <div className="absolute inset-0 bg-gradient-to-b from-luxury-black/50 via-transparent to-luxury-black/50" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
@@ -1367,65 +1374,78 @@ function TestimonialsSection({ onWriteReview }: { onWriteReview: () => void }) {
           description="Don't just take our word for it — hear from our amazing customers who have transformed their look with LACELLE HAIR"
         />
         <div ref={ref} className="max-w-4xl mx-auto">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeIndex}
-              initial={mobile ? false : { opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={mobile ? {} : { opacity: 0, y: -20 }}
-              transition={{ duration: mobile ? 0.15 : 0.5 }}
-              className="bg-luxury-dark border border-luxury-border rounded-2xl p-6 sm:p-8 md:p-12 text-center relative"
+          <div className="relative overflow-hidden" style={{ minHeight: 340 }}>
+            <AnimatePresence mode="wait" custom={direction}>
+              <motion.div
+                key={activeIndex}
+                custom={direction}
+                initial={{ opacity: 0, x: direction * 80 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -direction * 80 }}
+                transition={{ duration: 0.4, ease: "easeInOut" }}
+                className="bg-luxury-dark border border-luxury-border rounded-2xl p-6 sm:p-8 md:p-12 text-center relative"
+              >
+                <div className="absolute top-4 left-6 text-gold/20 text-7xl font-serif leading-none">
+                  &ldquo;
+                </div>
+                <div className="flex justify-center gap-1 mb-6">
+                  {Array.from({ length: TESTIMONIALS[activeIndex].rating }).map(
+                    (_, i) => (
+                      <Star key={i} className="w-5 h-5 text-gold fill-gold" />
+                    ),
+                  )}
+                </div>
+                <p className="text-white/80 text-base md:text-lg leading-relaxed mb-8 italic max-w-2xl mx-auto">
+                  &ldquo;{TESTIMONIALS[activeIndex].text}&rdquo;
+                </p>
+                <div className="flex flex-col items-center gap-3">
+                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gold to-pink flex items-center justify-center text-luxury-black font-bold text-lg">
+                    {TESTIMONIALS[activeIndex].avatar}
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold">
+                      {TESTIMONIALS[activeIndex].name}
+                    </p>
+                    <p className="text-muted-foreground text-sm">
+                      {TESTIMONIALS[activeIndex].location}
+                    </p>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="border-gold/30 text-gold text-xs"
+                  >
+                    Purchased: {TESTIMONIALS[activeIndex].product}
+                  </Badge>
+                </div>
+              </motion.div>
+            </AnimatePresence>
+          </div>
+          <div className="flex justify-center gap-3 mt-8">
+            <button
+              onClick={() => goTo((activeIndex - 1 + TESTIMONIALS.length) % TESTIMONIALS.length)}
+              className="w-8 h-8 rounded-full border border-luxury-border flex items-center justify-center text-white/60 hover:border-gold hover:text-gold transition-colors"
             >
-              <div className="absolute top-4 left-6 text-gold/20 text-7xl font-serif leading-none">
-                &ldquo;
-              </div>
-              <div className="flex justify-center gap-1 mb-6">
-                {Array.from({ length: TESTIMONIALS[activeIndex].rating }).map(
-                  (_, i) => (
-                    <Star key={i} className="w-5 h-5 text-gold fill-gold" />
-                  ),
-                )}
-              </div>
-              <p className="text-white/80 text-base md:text-lg leading-relaxed mb-8 italic max-w-2xl mx-auto">
-                &ldquo;{TESTIMONIALS[activeIndex].text}&rdquo;
-              </p>
-              <div className="flex flex-col items-center gap-3">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-gold to-pink flex items-center justify-center text-luxury-black font-bold text-lg">
-                  {TESTIMONIALS[activeIndex].avatar}
-                </div>
-                <div>
-                  <p className="text-white font-semibold">
-                    {TESTIMONIALS[activeIndex].name}
-                  </p>
-                  <p className="text-muted-foreground text-sm">
-                    {TESTIMONIALS[activeIndex].location}
-                  </p>
-                </div>
-                <Badge
-                  variant="outline"
-                  className="border-gold/30 text-gold text-xs"
-                >
-                  Purchased: {TESTIMONIALS[activeIndex].product}
-                </Badge>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-          <div className="flex justify-center gap-2 mt-8">
+              <ChevronLeft className="w-4 h-4" />
+            </button>
             {TESTIMONIALS.map((_, i) => (
               <button
                 key={i}
-                onClick={() => setActiveIndex(i)}
-                className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${i === activeIndex ? "bg-pink w-8" : "bg-luxury-border hover:bg-pink/50"}`}
+                onClick={() => goTo(i)}
+                className={`w-2.5 h-2.5 rounded-full transition-all duration-300 self-center ${i === activeIndex ? "bg-pink w-8" : "bg-luxury-border hover:bg-pink/50"}`}
               />
             ))}
+            <button
+              onClick={() => goTo((activeIndex + 1) % TESTIMONIALS.length)}
+              className="w-8 h-8 rounded-full border border-luxury-border flex items-center justify-center text-white/60 hover:border-gold hover:text-gold transition-colors"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
           </div>
         </div>
       </div>
     </section>
   );
 }
-
-/* ─────────── Customer Reviews Section ─────────── */
 
 function StarRating({
   rating,
@@ -1455,112 +1475,6 @@ function StarRating({
   );
 }
 
-function CustomerReviewsSection({
-  products,
-  onWriteReview,
-}: {
-  products: ProductType[];
-  onWriteReview: (productId?: string) => void;
-}) {
-  const [reviews, setReviews] = useState<ReviewType[]>([]);
-  const [loading, setLoading] = useState(true);
-  const mobile = useIsMobile();
-
-  useEffect(() => {
-    fetch("/api/reviews?limit=10")
-      .then((r) => r.json())
-      .then((data) => {
-        setReviews(data.reviews || []);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, []);
-
-  if (loading) {
-    return (
-      <section className="py-16 bg-luxury-black">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <SectionHeading
-            subtitle="Reviews"
-            title="Customer Reviews"
-            description="Real reviews from our amazing customers"
-          />
-          <div className="flex justify-center">
-            <div className="w-8 h-8 border-2 border-gold border-t-transparent rounded-full animate-spin" />
-          </div>
-        </div>
-      </section>
-    );
-  }
-
-  if (reviews.length === 0) return null;
-
-  return (
-    <section className="py-16 bg-luxury-black">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <SectionHeading
-          subtitle="Reviews"
-          title="Customer Reviews"
-          description="Real reviews from our amazing customers"
-        />
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {reviews.map((review) => (
-            <motion.div
-              key={review.id}
-              initial={mobile ? false : { opacity: 0, y: 20 }}
-              whileInView={mobile ? {} : { opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="bg-luxury-dark border border-luxury-border rounded-2xl p-6"
-            >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-gold to-pink flex items-center justify-center text-luxury-black font-bold text-sm">
-                    {review.author.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="text-white font-semibold text-sm">
-                      {review.author}
-                    </p>
-                    {review.product && (
-                      <p className="text-muted-foreground text-xs">
-                        {review.product.name}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <StarRating rating={review.rating} />
-              {review.title && (
-                <h4 className="text-white font-medium text-sm mt-3">
-                  {review.title}
-                </h4>
-              )}
-              <p className="text-muted-foreground text-sm mt-2 leading-relaxed">
-                {review.text}
-              </p>
-              <p className="text-xs text-muted-foreground/60 mt-3">
-                {new Date(review.createdAt).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </p>
-            </motion.div>
-          ))}
-        </div>
-        <div className="text-center mt-10">
-          <Button
-            onClick={() => onWriteReview()}
-            className="gold-gradient text-luxury-black font-semibold rounded-full px-8 py-3 text-sm hover:opacity-90 transition-all"
-          >
-            <Send className="w-4 h-4 mr-2" />
-            Write a Review
-          </Button>
-        </div>
-      </div>
-    </section>
-  );
-}
 
 /* ─────────── Write Review Dialog ─────────── */
 
@@ -3300,10 +3214,6 @@ export default function Home() {
         />
         <AboutSection />
         <TestimonialsSection onWriteReview={handleWriteReview} />
-        <CustomerReviewsSection
-          products={products}
-          onWriteReview={handleWriteReview}
-        />
         <NewsletterSection />
         <ContactSection siteEmail={siteEmail} sitePhone={sitePhone} />
       </main>
