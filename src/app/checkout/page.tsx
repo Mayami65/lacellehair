@@ -89,18 +89,18 @@ function CheckoutContent() {
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
-  const [country, setCountry] = useState("Ghana");
+  const [country, setCountry] = useState("Belgium");
 
   // Currency
-  const [currency] = useState("GHS");
+  const [currency] = useState("EUR");
 
   // Cart from localStorage
   const [cart, setCart] = useState<CartItem[]>([]);
   const [mounted, setMounted] = useState(false);
 
   // Shipping fee
-  const SHIPPING_THRESHOLD = 200;
-  const SHIPPING_FEE = 15;
+  const SHIPPING_THRESHOLD = 100;
+  const SHIPPING_FEE = 6.95;
   const subtotal = cart.reduce((sum, item) => {
     const price = item.variant ? item.variant.price : item.product.price;
     return sum + price * item.quantity;
@@ -477,11 +477,17 @@ function CheckoutContent() {
                       onChange={(e) => setCountry(e.target.value)}
                       className="w-full bg-luxury-gray border border-luxury-border rounded-xl h-12 px-3 text-white outline-none focus:border-gold/50 transition-colors cursor-pointer"
                     >
-                      <option value="Ghana" className="bg-luxury-dark">
-                        Ghana
+                      <option value="Belgium" className="bg-luxury-dark">
+                        Belgium
                       </option>
-                      <option value="Nigeria" className="bg-luxury-dark">
-                        Nigeria
+                      <option value="France" className="bg-luxury-dark">
+                        France
+                      </option>
+                      <option value="Netherlands" className="bg-luxury-dark">
+                        Netherlands
+                      </option>
+                      <option value="Germany" className="bg-luxury-dark">
+                        Germany
                       </option>
                       <option value="Kenya" className="bg-luxury-dark">
                         Kenya
@@ -668,7 +674,7 @@ function CheckoutContent() {
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal</span>
-                    <span className="text-white">${subtotal.toFixed(2)}</span>
+                    <span className="text-white">&euro;{subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Shipping</span>
@@ -681,20 +687,20 @@ function CheckoutContent() {
                     >
                       {shippingFee === 0
                         ? "FREE"
-                        : `$${shippingFee.toFixed(2)}`}
+                        : `&euro;{shippingFee.toFixed(2)}`}
                     </span>
                   </div>
                   {shippingFee > 0 && (
                     <p className="text-[11px] text-muted-foreground">
                       <Truck className="w-3 h-3 inline mr-1" />
-                      Free shipping on orders over ${SHIPPING_THRESHOLD}
+                      Free shipping on orders over &euro;{SHIPPING_THRESHOLD}
                     </p>
                   )}
                   <Separator className="bg-luxury-border" />
                   <div className="flex justify-between">
                     <span className="text-white font-semibold">Total</span>
                     <span className="text-xl font-bold text-gold">
-                      ${total.toFixed(2)}
+                      &euro;{total.toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -717,12 +723,12 @@ function CheckoutContent() {
                   ) : selectedPaymentMethod === "stripe" ? (
                     <>
                       <CreditCard className="w-4 h-4 mr-2" />
-                      Pay with Stripe ${total.toFixed(2)}
+                      Pay with Stripe &euro;{total.toFixed(2)}
                     </>
                   ) : (
                     <>
                       <Lock className="w-4 h-4 mr-2" />
-                      Pay with Paystack ${total.toFixed(2)}
+                      Pay with Paystack &euro;{total.toFixed(2)}
                     </>
                   )}
                 </Button>

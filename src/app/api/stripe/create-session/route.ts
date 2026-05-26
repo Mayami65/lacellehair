@@ -33,12 +33,12 @@ export async function POST(request: NextRequest) {
       address: address || "",
       city: city || "",
       state: state || "",
-      country: country || "",
+      country: country || "Belgium",
       items: JSON.stringify(items),
       subtotal: subtotal || 0,
       shippingFee: shippingFee || 0,
       totalAmount,
-      currency: currency || "USD",
+      currency: currency || "EUR",
       status: "pending",
       paymentMethod: "stripe",
       createdAt: now,
@@ -47,15 +47,13 @@ export async function POST(request: NextRequest) {
 
     const baseUrl = process.env["NEXT_PUBLIC_BASE_URL"] || process.env["NEXTAUTH_URL"] || ""
 
-    // Stripe doesn't support GHS on this account — default to usd
-    const stripeCurrency = (currency || "usd").toLowerCase()
-    const safeCurrency = stripeCurrency === "ghs" ? "usd" : stripeCurrency
+    const stripeCurrency = (currency || "eur").toLowerCase()
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
       line_items: items.map((it: any) => ({
         price_data: {
-          currency: safeCurrency,
+          currency: stripeCurrency,
           product_data: { name: it.name },
           unit_amount: Math.round((it.price || 0) * 100),
         },
