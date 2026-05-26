@@ -66,6 +66,7 @@ interface VariantType {
 interface ProductType {
   id: string;
   name: string;
+  description: string;
   price: number;
   originalPrice?: number | null;
   image: string;
@@ -1275,6 +1276,7 @@ function ShopPage() {
             data.map((p: Record<string, unknown>) => ({
               id: p.id as string,
               name: p.name as string,
+              description: (p.description as string) || "",
               price: p.price as number,
               originalPrice: p.originalPrice as number | null,
               image: p.image as string,
@@ -1784,8 +1786,7 @@ function ShopPage() {
         href={`https://wa.me/${whatsappNumber}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="fixed bottom-6 left-6 z-40 flex items-center justify-center w-14 h-14 rounded-full bg-[#25D366] text-white shadow-lg shadow-[#25D366]/30 hover:shadow-xl hover:shadow-[#25D366]/40 transition-all ring-2 ring-pink/40 ring-offset-2"
-        style={{ ringOffsetColor: "#0A0A0A" }}
+        className="fixed bottom-6 left-6 z-40 flex items-center justify-center w-14 h-14 rounded-full bg-[#25D366] text-white shadow-lg shadow-[#25D366]/30 hover:shadow-xl hover:shadow-[#25D366]/40 transition-all ring-2 ring-pink/40 ring-offset-2 ring-offset-luxury-black"
       >
         <MessageCircle className="w-6 h-6" fill="white" />
       </a>
